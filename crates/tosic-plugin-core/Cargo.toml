@@ -9,6 +9,11 @@ edition.workspace = true
 [dependencies]
 thiserror.workspace = true
 async-trait = { workspace = true, optional = true }
+cfg-if = "1.0.3"
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["full"] }
+futures = { workspace = true }
 
 [features]
 default = []
