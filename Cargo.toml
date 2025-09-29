@@ -1,0 +1,8 @@
+[workspace]
+members = ["crates/tosic-plugin", "crates/tosic-plugin-core"]
+
+[workspace.package]
+version = "1.0.0-alpha.1"
+description = "A plugin system to abstract over different plugin runtimes such as WebAssembly or Lua."
+authors = ["Emil Schütt <emil.schutt@gmail.com>"]
+edition = "2024"

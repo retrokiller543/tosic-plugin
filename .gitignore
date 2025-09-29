@@ -1,0 +1,10 @@
+/target
+
+# Environment files
+.env
+.env.local
+.direnv/
+
+# idea files
+.idea/
+.vscode/
