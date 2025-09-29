@@ -7,3 +7,9 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
+thiserror.workspace = true
+async-trait = { workspace = true, optional = true }
+
+[features]
+default = []
+async = ["async-trait"]

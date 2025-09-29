@@ -1,0 +1,1 @@
+pub trait PluginManager: Send + Sync {}

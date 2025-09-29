@@ -1,5 +1,6 @@
 [workspace]
 members = ["crates/tosic-plugin", "crates/tosic-plugin-core"]
+resolver = "3"
 
 [workspace.package]
 version = "1.0.0-alpha.1"
