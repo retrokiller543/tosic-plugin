@@ -1,3 +1,5 @@
+//! Value type for plugin data exchange.
+
 use std::collections::HashMap;
 use crate::{PluginResult, PluginError};
 
@@ -5,21 +7,31 @@ use crate::{PluginResult, PluginError};
 /// This enum represents all possible values that can cross the plugin boundary.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
+    /// Represents a null/none value.
     Null,
+    /// Boolean value (true or false).
     Bool(bool),
+    /// 64-bit signed integer.
     Int(i64),
+    /// 64-bit floating point number.
     Float(f64),
+    /// UTF-8 string.
     String(String),
+    /// Binary data as a vector of bytes.
     Bytes(Vec<u8>),
+    /// Array of values.
     Array(Vec<Value>),
+    /// Object/map with string keys and Value values.
     Object(HashMap<String, Value>),
 }
 
 impl Value {
+    /// Returns true if the value is null.
     pub fn is_null(&self) -> bool {
         matches!(self, Value::Null)
     }
 
+    /// Attempts to extract a boolean value.
     pub fn as_bool(&self) -> Option<bool> {
         match self {
             Value::Bool(b) => Some(*b),
@@ -27,6 +39,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract an integer value.
     pub fn as_int(&self) -> Option<i64> {
         match self {
             Value::Int(i) => Some(*i),
@@ -34,6 +47,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract a floating point value.
     pub fn as_float(&self) -> Option<f64> {
         match self {
             Value::Float(f) => Some(*f),
@@ -41,6 +55,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract a string slice.
     pub fn as_string(&self) -> Option<&str> {
         match self {
             Value::String(s) => Some(s),
@@ -48,6 +63,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract a byte slice.
     pub fn as_bytes(&self) -> Option<&[u8]> {
         match self {
             Value::Bytes(b) => Some(b),
@@ -55,6 +71,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract an array slice.
     pub fn as_array(&self) -> Option<&[Value]> {
         match self {
             Value::Array(a) => Some(a),
@@ -62,6 +79,7 @@ impl Value {
         }
     }
 
+    /// Attempts to extract an object map.
     pub fn as_object(&self) -> Option<&HashMap<String, Value>> {
         match self {
             Value::Object(o) => Some(o),

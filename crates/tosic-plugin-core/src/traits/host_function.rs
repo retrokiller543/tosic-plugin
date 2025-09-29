@@ -1,21 +1,45 @@
+//! Host function traits for type-safe function registration and calling.
+
 use crate::PluginResult;
 use crate::types::Value;
 
 /// Trait for types that can be extracted from plugin Values.
+#[diagnostic::on_unimplemented(
+    message = "the type `{Self}` cannot be extracted from a plugin Value",
+    note = "ensure your type implements `FromValue` or use one of the built-in types: bool, i32, i64, f32, f64, String, Vec<u8>, Vec<Value>, HashMap<String, Value>"
+)]
 pub trait FromValue: Sized {
+    /// Extracts a Rust type from a plugin Value.
+    /// 
+    /// # Errors
+    /// Returns `PluginError::InvalidArgumentType` if the value cannot be converted to the target type.
     fn from_value(value: &Value) -> PluginResult<Self>;
 }
 
 /// Trait for types that can be converted into plugin Values.
+#[diagnostic::on_unimplemented(
+    message = "the type `{Self}` cannot be converted into a plugin Value",
+    note = "ensure your type implements `IntoValue` or use one of the built-in types: bool, i32, i64, f32, f64, String, &str, Vec<u8>, &[u8], Vec<Value>, HashMap<String, Value>, Value, ()"
+)]
 pub trait IntoValue {
+    /// Converts a Rust type into a plugin Value.
     fn into_value(self) -> Value;
 }
 
 /// Trait for functions that can be used as host functions.
 /// This trait is implemented for functions with different arities.
+#[diagnostic::on_unimplemented(
+    message = "the function `{Self}` cannot be used as a host function",
+    note = "ensure your function arguments implement `FromValue` and return type implements `IntoValue`. Functions must be `Fn(...) -> R + Send + Sync`. Maximum 16 arguments supported."
+)]
 pub trait HostFunction<Args>: Send + Sync {
+    /// The return type of the host function.
     type Output: IntoValue;
     
+    /// Calls the host function with the provided arguments.
+    /// 
+    /// # Errors
+    /// Returns an error if the function call fails or if argument types are invalid.
     fn call(&self, args: Args) -> PluginResult<Value>;
 }
 

@@ -1,3 +1,5 @@
+//! Core types for plugin system data exchange.
+
 mod value;
 mod context;
 

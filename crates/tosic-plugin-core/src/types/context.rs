@@ -1,3 +1,5 @@
+//! Host context for plugin function registration.
+
 use std::collections::HashMap;
 use crate::PluginResult;
 use crate::types::Value;
@@ -57,7 +59,11 @@ impl HostContext {
 }
 
 /// Trait for extracting arguments from a Value array into the appropriate tuple type.
+/// 
+/// # Errors
+/// Returns `PluginError::InvalidArgumentType` if argument extraction fails.
 pub trait ExtractArgs: Sized {
+    /// Extracts typed arguments from a Value slice.
     fn extract_args(args: &[Value]) -> PluginResult<Self>;
 }
 

@@ -1,3 +1,5 @@
+//! Runtime abstraction traits for plugin loading and execution.
+
 use crate::types::{HostContext, Value};
 use crate::PluginResult;
 
