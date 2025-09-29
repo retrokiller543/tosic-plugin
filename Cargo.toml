@@ -5,4 +5,42 @@ members = ["crates/tosic-plugin", "crates/tosic-plugin-core"]
 version = "1.0.0-alpha.1"
 description = "A plugin system to abstract over different plugin runtimes such as WebAssembly or Lua."
 authors = ["Emil Schütt <emil.schutt@gmail.com>"]
+license = "MIT"
 edition = "2024"
+
+[workspace.dependencies]
+tosic-plugin = { path = "crates/tosic-plugin", version = "1.0.0-alpha.1" }
+tosic-plugin-core = { path = "crates/tosic-plugin-core", version = "1.0.0-alpha.1" }
+
+# Built-in runtimes
+
+# Common dependencies
+thiserror = "2.0"
+derive_more = "2.0"
+inventory = "0.3"
+async-trait = "0.1"
+itertools = "0.14"
+tokio = "1.47"
+tokio-stream = "0.1"
+tokio-util = "0.7"
+futures = "0.3"
+futures-util = "0.3"
+
+[profile.dev]
+opt-level = 0
+debug = true
+split-debuginfo = "packed"
+overflow-checks = true
+lto = false
+panic = "unwind"
+incremental = true
+codegen-units = 256
+rpath = false
+debug-assertions = true
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = true
+codegen-units = 1
+panic = "abort"

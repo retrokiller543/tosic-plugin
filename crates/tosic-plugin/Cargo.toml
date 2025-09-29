@@ -1,6 +1,9 @@
 [package]
 name = "tosic-plugin"
-version = "0.1.0"
-edition = "2024"
+description = "The main entry point for the tosic-plugin system, this contains all tools needed to use the system and build new runtiems and managers."
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]

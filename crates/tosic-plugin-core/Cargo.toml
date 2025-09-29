@@ -1,6 +1,9 @@
 [package]
 name = "tosic-plugin-core"
-version = "0.1.0"
-edition = "2024"
+description = "Core abstractions and traits for the tosic-plugin system."
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
 
 [dependencies]
