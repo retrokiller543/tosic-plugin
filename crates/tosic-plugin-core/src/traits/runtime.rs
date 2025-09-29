@@ -1,7 +1,7 @@
 //! Runtime abstraction traits for plugin loading and execution.
 
 use crate::types::{HostContext, Value};
-use crate::PluginResult;
+use crate::{PluginResult, PluginSource};
 
 /// Opaque handle to a loaded plugin instance.
 /// This trait represents a loaded piece of plugin code that can be executed.
@@ -21,7 +21,7 @@ pub trait Runtime: Send + Sync {
 
     /// Loads plugin code from bytes with the provided host context.
     /// Returns a plugin instance that can be used to call functions.
-    fn load(&self, bytes: &[u8], context: &HostContext) -> PluginResult<Self::Plugin>;
+    fn load(&mut self, source: &PluginSource, context: &HostContext) -> PluginResult<()>;
 
     /// Calls a function in the loaded plugin with the given arguments.
     /// Returns the result value from the plugin function.
@@ -43,7 +43,7 @@ pub trait Runtime: Send + Sync {
 
     /// Loads plugin code from bytes with the provided host context.
     /// Returns a plugin instance that can be used to call functions.
-    async fn load(&self, bytes: &[u8], context: &HostContext) -> PluginResult<Self::Plugin>;
+    async fn load(&mut self, source: &PluginSource, context: &HostContext) -> PluginResult<()>;
 
     /// Calls a function in the loaded plugin with the given arguments.
     /// Returns the result value from the plugin function.

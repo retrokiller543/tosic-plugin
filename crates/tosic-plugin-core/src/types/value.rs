@@ -1,11 +1,12 @@
 //! Value type for plugin data exchange.
 
 use std::collections::HashMap;
+use serde::Serialize;
 use crate::{PluginResult, PluginError};
 
 /// Boundary type for passing values between the host and plugin runtime.
 /// This enum represents all possible values that can cross the plugin boundary.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Value {
     /// Represents a null/none value.
     Null,
@@ -151,6 +152,34 @@ impl From<Vec<Value>> for Value {
 impl From<HashMap<String, Value>> for Value {
     fn from(value: HashMap<String, Value>) -> Self {
         Value::Object(value)
+    }
+}
+
+impl From<serde_json::Value> for Value {
+    fn from(value: serde_json::Value) -> Self {
+        match value {
+            serde_json::Value::Null => Value::Null,
+            serde_json::Value::Bool(b) => Value::Bool(b),
+            serde_json::Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    Value::Int(i)
+                } else if let Some(f) = n.as_f64() {
+                    Value::Float(f)
+                } else {
+                    Value::Null // Fallback for unsupported number types
+                }
+            }
+            serde_json::Value::String(s) => Value::String(s),
+            serde_json::Value::Array(arr) => {
+                Value::Array(arr.into_iter().map(Value::from).collect())
+            }
+            serde_json::Value::Object(obj) => {
+                let map = obj.into_iter()
+                    .map(|(k, v)| (k, Value::from(v)))
+                    .collect();
+                Value::Object(map)
+            }
+        }
     }
 }
 
@@ -314,5 +343,35 @@ impl IntoValue for Value {
 impl IntoValue for () {
     fn into_value(self) -> Value {
         Value::Null
+    }
+}
+
+impl Into<serde_json::Value> for Value {
+    fn into(self) -> serde_json::Value {
+        match self {
+            Value::Null => serde_json::Value::Null,
+            Value::Bool(b) => serde_json::Value::Bool(b),
+            Value::Int(i) => serde_json::Value::Number(serde_json::Number::from(i)),
+            Value::Float(f) => {
+                serde_json::Number::from_f64(f)
+                    .map(serde_json::Value::Number)
+                    .unwrap_or(serde_json::Value::Null)
+            }
+            Value::String(s) => serde_json::Value::String(s),
+            Value::Bytes(b) => {
+                serde_json::Value::Array(b.into_iter().map(|byte| serde_json::Value::Number(serde_json::Number::from(byte))).collect())
+            }
+            Value::Array(arr) => {
+                let json_arr: Vec<serde_json::Value> = arr.into_iter().map(|v| v.into()).collect();
+                serde_json::Value::Array(json_arr)
+            }
+            Value::Object(obj) => {
+                let json_obj: serde_json::Map<String, serde_json::Value> = obj
+                    .into_iter()
+                    .map(|(k, v)| (k, v.into()))
+                    .collect();
+                serde_json::Value::Object(json_obj)
+            }
+        }
     }
 }

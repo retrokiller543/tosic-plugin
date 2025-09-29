@@ -1,17 +1,18 @@
 //! Host context for plugin function registration.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 use crate::PluginResult;
 use crate::types::Value;
 
 use crate::traits::host_function::HostFunction;
 
 /// Type-erased host function that can be stored in the context.
-type BoxedHostFunction = Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>;
+type BoxedHostFunction = Arc<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>;
 
 /// Context containing host functions that can be injected into plugin runtimes.
 /// Functions are identified by their string names and can be called from plugins.
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct HostContext {
     functions: HashMap<String, BoxedHostFunction>,
 }
@@ -31,7 +32,7 @@ impl HostContext {
         F: HostFunction<Args> + 'static,
         Args: ExtractArgs,
     {
-        let boxed_func = Box::new(move |args: &[Value]| -> PluginResult<Value> {
+        let boxed_func = Arc::new(move |args: &[Value]| -> PluginResult<Value> {
             let extracted_args = Args::extract_args(args)?;
             func.call(extracted_args)
         });

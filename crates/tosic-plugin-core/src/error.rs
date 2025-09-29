@@ -37,6 +37,10 @@ pub enum PluginError {
     /// Plugin is in an invalid state for the requested operation.
     #[error("Invalid plugin state")]
     InvalidPluginState,
+    
+    /// File not found error when loading plugin from a file path.
+    #[error("File not found")]
+    FileNotFound,
 }
 
 /// Result type for plugin operations that may fail.

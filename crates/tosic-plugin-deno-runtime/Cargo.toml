@@ -1,0 +1,14 @@
+[package]
+name = "tosic-plugin-deno-runtime"
+version.workspace = true
+description.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+tosic-plugin-core.workspace = true
+
+# runtime
+rustyscript = "0.12.3"
+serde_json.workspace = true
