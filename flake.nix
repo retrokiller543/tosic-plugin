@@ -46,27 +46,59 @@
           buildInputs = with pkgs; [
             # Rust toolchain
             rustToolchain
+            
+            # Cargo extensions
             cargo-watch
             cargo-edit
             cargo-audit
+            cargo-outdated
+            cargo-license
+            cargo-machete
+            cargo-tarpaulin  # for test coverage
             
-            # Development tools
+            # WASM tooling
+            wasmtime
+            wasm-pack
+            wasm-tools
+            
+            # Build and development tools
+            just  # justfile command runner
             git
             setupGit
             
-            # Optional: useful for plugin development
+            # Cross-compilation and linking
             pkg-config
             openssl
+            
+            # Documentation and analysis
+            tokei  # code statistics
+            tree   # directory tree display
+            
+            # JavaScript/Node.js (for potential JS runtime support)
+            nodejs_20
+            
+            # Python (for documentation serving)
+            python3
             
             # Nix tools
             nixpkgs-fmt
             nil
+            
+            # Optional: Additional development utilities
+            fd      # fast find alternative
+            ripgrep # fast grep alternative
+            bat     # better cat with syntax highlighting
+            
+            # HTTP server tools for documentation
+            miniserve
           ];
 
           shellHook = ''
             echo "🦀 Tosic Plugin Development Environment"
+            echo "======================================="
             echo "Rust version: $(rustc --version)"
             echo "Cargo version: $(cargo --version)"
+            echo "Just version: $(just --version 2>/dev/null || echo "not found")"
             echo ""
             
             # Auto-configure git if .env exists
@@ -78,11 +110,27 @@
               echo "   Example: echo 'GIT_USER_EMAIL=work@company.com' > .env"
             fi
             echo ""
-            echo "Available commands:"
-            echo "  cargo build      - Build the project"
-            echo "  cargo test       - Run tests"
-            echo "  cargo watch -x check  - Watch for changes and check"
-            echo "  setup-git        - Manually configure git from .env"
+            echo "🚀 Quick Start Commands:"
+            echo "  just dev         - Start development workflow (build + test + watch)"
+            echo "  just test        - Run all tests"
+            echo "  just release     - Build optimized release"
+            echo "  just help        - Show all available commands"
+            echo ""
+            echo "🌍 Cross-compilation:"
+            echo "  just cross-macos     - Build for macOS (Intel + ARM)"
+            echo "  just cross-linux     - Build for Linux (x64 + ARM)"
+            echo "  just cross-windows   - Build for Windows"
+            echo ""
+            echo "🛠️  WASM Support Ready:"
+            echo "  wasmtime --version   - $(wasmtime --version 2>/dev/null || echo "not found")"
+            echo "  wasm-pack --version  - $(wasm-pack --version 2>/dev/null || echo "not found")"
+            echo ""
+            echo "🔧 Development Tools:"
+            echo "  just lint        - Run linting and formatting"
+            echo "  just docs-open   - Generate and open documentation"
+            echo "  just clean       - Clean build artifacts"
+            echo ""
+            echo "For a complete list of commands: just help"
           '';
 
           # Environment variables
