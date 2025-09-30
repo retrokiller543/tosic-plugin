@@ -7,92 +7,96 @@
 //! 
 //! Run with: `cargo run --example sync_runtime`
 
-#[cfg(feature = "async")]
-compile_error!("This example requires the 'async' feature to be disabled.");
+#[cfg(not(feature = "async"))]
+use crate::plugin::*;
 
-use std::collections::HashMap;
-use tosic_plugin_core::*;
+#[cfg(not(feature = "async"))]
+mod plugin {
+    use std::collections::HashMap;
+    pub use tosic_plugin_core::prelude::*;
 
-/// Mock plugin implementation that simulates a simple plugin with predefined functions.
-struct MockPlugin {
-    name: String,
-    functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>>,
-}
-
-impl Plugin for MockPlugin {
-    fn name(&self) -> Option<&str> {
-        Some(&self.name)
+    /// Mock plugin implementation that simulates a simple plugin with predefined functions.
+    struct MockPlugin {
+        name: String,
+        functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>>,
     }
-}
 
-/// Mock runtime implementation that simulates plugin loading and execution.
-#[derive(Default)]
-struct MockRuntime {}
-
-impl MockRuntime {
-    fn new() -> Self {
-        Self::default()
+    impl Plugin for MockPlugin {
+        fn name(&self) -> Option<&str> {
+            Some(&self.name)
+        }
     }
-}
 
-impl Runtime for MockRuntime {
-    type Plugin = MockPlugin;
+    /// Mock runtime implementation that simulates plugin loading and execution.
+    #[derive(Default)]
+    struct MockRuntime {}
 
-    fn load(&self, bytes: &[u8], _context: &HostContext) -> PluginResult<Self::Plugin> {
-        // Simulate plugin loading from bytes
-        let plugin_code = String::from_utf8_lossy(bytes);
-        println!("Loading plugin from {} bytes: {}", bytes.len(), plugin_code);
-        
-        // Create a mock plugin with some predefined functions
-        let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
-        
-        // Add a simple "add" function
-        functions.insert("add".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
-            if args.len() != 2 {
-                return Err(PluginError::InvalidArgumentType);
+    impl MockRuntime {
+        fn new() -> Self {
+            Self::default()
+        }
+    }
+
+    impl Runtime for MockRuntime {
+        type Plugin = MockPlugin;
+
+        fn load(&mut self, bytes: &PluginSource, _context: &HostContext) -> PluginResult<()> {
+            // Simulate plugin loading from bytes
+            let plugin_code = String::from_utf8_lossy(bytes);
+            println!("Loading plugin from {} bytes: {}", bytes.len(), plugin_code);
+
+            // Create a mock plugin with some predefined functions
+            let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
+
+            // Add a simple "add" function
+            functions.insert("add".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
+                if args.len() != 2 {
+                    return Err(PluginError::InvalidArgumentType);
+                }
+
+                let a = args[0].as_int().ok_or(PluginError::InvalidArgumentType)?;
+                let b = args[1].as_int().ok_or(PluginError::InvalidArgumentType)?;
+
+                Ok(Value::Int(a + b))
+            }));
+
+            // Add a "greet" function
+            functions.insert("greet".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
+                if args.len() != 1 {
+                    return Err(PluginError::InvalidArgumentType);
+                }
+
+                let name = args[0].as_string().ok_or(PluginError::InvalidArgumentType)?;
+
+                // Simulate plugin logging (in a real implementation, this would call host functions)
+                println!("[PLUGIN LOG] Plugin is greeting: {}", name);
+
+                Ok(Value::String(format!("Hello from plugin, {}!", name)))
+            }));
+
+            Ok(MockPlugin {
+                name: "mock-plugin".to_string(),
+                functions,
+            })
+        }
+
+        fn call(
+            &self,
+            plugin: &Self::Plugin,
+            function_name: &str,
+            args: &[Value],
+        ) -> PluginResult<Value> {
+            println!("Calling function '{}' with {} arguments", function_name, args.len());
+
+            match plugin.functions.get(function_name) {
+                Some(func) => func(args),
+                None => Err(PluginError::FunctionNotFound(function_name.to_string())),
             }
-            
-            let a = args[0].as_int().ok_or(PluginError::InvalidArgumentType)?;
-            let b = args[1].as_int().ok_or(PluginError::InvalidArgumentType)?;
-            
-            Ok(Value::Int(a + b))
-        }));
-        
-        // Add a "greet" function
-        functions.insert("greet".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
-            if args.len() != 1 {
-                return Err(PluginError::InvalidArgumentType);
-            }
-            
-            let name = args[0].as_string().ok_or(PluginError::InvalidArgumentType)?;
-            
-            // Simulate plugin logging (in a real implementation, this would call host functions)
-            println!("[PLUGIN LOG] Plugin is greeting: {}", name);
-            
-            Ok(Value::String(format!("Hello from plugin, {}!", name)))
-        }));
-        
-        Ok(MockPlugin {
-            name: "mock-plugin".to_string(),
-            functions,
-        })
-    }
-
-    fn call(
-        &self,
-        plugin: &Self::Plugin,
-        function_name: &str,
-        args: &[Value],
-    ) -> PluginResult<Value> {
-        println!("Calling function '{}' with {} arguments", function_name, args.len());
-        
-        match plugin.functions.get(function_name) {
-            Some(func) => func(args),
-            None => Err(PluginError::FunctionNotFound(function_name.to_string())),
         }
     }
 }
 
+#[cfg(not(feature = "async"))]
 fn main() -> PluginResult<()> {
     println!("=== Synchronous Plugin Runtime Example ===\n");
     
@@ -171,4 +175,9 @@ fn main() -> PluginResult<()> {
     
     println!("\n=== Example completed successfully! ===");
     Ok(())
+}
+
+#[cfg(feature = "async")]
+fn main() {
+    panic!("This example is not available when the `async` feature is enabled");
 }

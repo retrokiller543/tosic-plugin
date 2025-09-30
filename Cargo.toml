@@ -14,6 +14,7 @@ tosic-plugin = { path = "crates/tosic-plugin", version = "1.0.0-alpha.1" }
 tosic-plugin-core = { path = "crates/tosic-plugin-core", version = "1.0.0-alpha.1" }
 
 # Built-in runtimes
+tosic-plugin-deno-runtime = { path = "crates/tosic-plugin-deno-runtime", version = "1.0.0-alpha.1" }
 
 # Common dependencies
 thiserror = "2.0"

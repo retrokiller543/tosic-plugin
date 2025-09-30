@@ -7,3 +7,14 @@ license.workspace = true
 edition.workspace = true
 
 [dependencies]
+tosic-plugin-core.workspace = true
+
+# Built-in runtimes
+tosic-plugin-deno-runtime = { workspace = true, optional = true }
+
+[features]
+default = []
+async = ["tosic-plugin-core/async"]
+all = ["deno-runtime"]
+
+deno-runtime = ["tosic-plugin-deno-runtime"]

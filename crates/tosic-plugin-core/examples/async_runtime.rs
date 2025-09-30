@@ -8,140 +8,142 @@
 //! 
 //! Run with: `cargo run --example async_runtime --features async`
 
-cfg_if::cfg_if! {
-    if #[cfg(not(feature = "async"))] {
-        compile_error!("This example requires the 'async' feature to be enabled. Please run with `--features async`.");
+#[cfg(feature = "async")]
+use crate::plugin::*;
+
+#[cfg(feature = "async")]
+mod plugin {
+    use std::collections::HashMap;
+    use std::time::Duration;
+    
+    pub use std::sync::Arc;
+    pub use tosic_plugin_core::prelude::*;
+
+    /// Mock plugin implementation that simulates an async plugin with predefined functions.
+    struct AsyncMockPlugin {
+        name: String,
+        functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>>,
     }
-}
 
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::time::Duration;
-use tosic_plugin_core::*;
-
-/// Mock plugin implementation that simulates an async plugin with predefined functions.
-struct AsyncMockPlugin {
-    name: String,
-    functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>>,
-}
-
-impl Plugin for AsyncMockPlugin {
-    fn name(&self) -> Option<&str> {
-        Some(&self.name)
-    }
-}
-
-/// Mock async runtime implementation that simulates plugin loading and execution.
-#[derive(Default)]
-struct AsyncMockRuntime {
-    name: String,
-}
-
-impl AsyncMockRuntime {
-    fn new(name: impl Into<String>) -> Self {
-        Self {
-            name: name.into(),
+    impl Plugin for AsyncMockPlugin {
+        fn name(&self) -> Option<&str> {
+            Some(&self.name)
         }
     }
-}
 
-#[async_trait::async_trait]
-impl Runtime for AsyncMockRuntime {
-    type Plugin = AsyncMockPlugin;
+    /// Mock async runtime implementation that simulates plugin loading and execution.
+    #[derive(Default)]
+    struct AsyncMockRuntime {
+        name: String,
+    }
 
-    async fn load(&self, bytes: &[u8], _context: &HostContext) -> PluginResult<Self::Plugin> {
-        // Simulate async plugin loading (e.g., network fetch, compilation, etc.)
-        println!("[{}] Starting async plugin load from {} bytes...", self.name, bytes.len());
-        
-        // Simulate some async work
-        tokio::time::sleep(Duration::from_millis(100)).await;
-        
-        let plugin_code = String::from_utf8_lossy(bytes);
-        println!("[{}] Loaded plugin code: {}", self.name, plugin_code);
-        
-        // Create a mock plugin with some async-aware functions
-        let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
-        
-        // Add an async "add" function (simulated)
-        functions.insert("add".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
-            if args.len() != 2 {
-                return Err(PluginError::InvalidArgumentType);
+    impl AsyncMockRuntime {
+        fn new(name: impl Into<String>) -> Self {
+            Self {
+                name: name.into(),
             }
-            
-            let a = args[0].as_int().ok_or(PluginError::InvalidArgumentType)?;
-            let b = args[1].as_int().ok_or(PluginError::InvalidArgumentType)?;
-            
-            // Simulate some computation
-            println!("[PLUGIN] Async computing {} + {}", a, b);
-            Ok(Value::Int(a + b))
-        }));
-        
-        // Add a "fetch_data" function that simulates async I/O
-        functions.insert("fetch_data".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
-            if args.len() != 1 {
-                return Err(PluginError::InvalidArgumentType);
-            }
-            
-            let url = args[0].as_string().ok_or(PluginError::InvalidArgumentType)?;
-            
-            // Simulate async data fetching
-            println!("[PLUGIN] Simulating async fetch from: {}", url);
-            Ok(Value::String(format!("Data from {}", url)))
-        }));
-        
-        // Add a "process_batch" function that works with arrays
-        functions.insert("process_batch".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
-            if args.len() != 1 {
-                return Err(PluginError::InvalidArgumentType);
-            }
-            
-            let array = args[0].as_array().ok_or(PluginError::InvalidArgumentType)?;
-            
-            // Process each item (simulate async work per item)
-            let mut results = Vec::new();
-            for (i, item) in array.iter().enumerate() {
-                if let Some(num) = item.as_int() {
-                    println!("[PLUGIN] Processing item {}: {}", i, num);
-                    results.push(Value::Int(num * 2));
-                } else {
-                    results.push(item.clone());
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl Runtime for AsyncMockRuntime {
+        type Plugin = AsyncMockPlugin;
+
+        async fn load(&self, bytes: &[u8], _context: &HostContext) -> PluginResult<Self::Plugin> {
+            // Simulate async plugin loading (e.g., network fetch, compilation, etc.)
+            println!("[{}] Starting async plugin load from {} bytes...", self.name, bytes.len());
+
+            // Simulate some async work
+            tokio::time::sleep(Duration::from_millis(100)).await;
+
+            let plugin_code = String::from_utf8_lossy(bytes);
+            println!("[{}] Loaded plugin code: {}", self.name, plugin_code);
+
+            // Create a mock plugin with some async-aware functions
+            let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
+
+            // Add an async "add" function (simulated)
+            functions.insert("add".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
+                if args.len() != 2 {
+                    return Err(PluginError::InvalidArgumentType);
                 }
-            }
-            
-            Ok(Value::Array(results))
-        }));
-        
-        println!("[{}] Plugin loaded successfully with {} functions", self.name, functions.len());
-        
-        Ok(AsyncMockPlugin {
-            name: format!("async-mock-plugin-{}", self.name),
-            functions,
-        })
-    }
 
-    async fn call(
-        &self,
-        plugin: &Self::Plugin,
-        function_name: &str,
-        args: &[Value],
-    ) -> PluginResult<Value> {
-        println!("[{}] Async calling function '{}' with {} arguments", 
-                 self.name, function_name, args.len());
-        
-        // Simulate async function call overhead
-        tokio::time::sleep(Duration::from_millis(10)).await;
-        
-        match plugin.functions.get(function_name) {
-            Some(func) => {
-                let result = func(args)?;
-                println!("[{}] Function '{}' completed", self.name, function_name);
-                Ok(result)
-            },
-            None => Err(PluginError::FunctionNotFound(function_name.to_string())),
+                let a = args[0].as_int().ok_or(PluginError::InvalidArgumentType)?;
+                let b = args[1].as_int().ok_or(PluginError::InvalidArgumentType)?;
+
+                // Simulate some computation
+                println!("[PLUGIN] Async computing {} + {}", a, b);
+                Ok(Value::Int(a + b))
+            }));
+
+            // Add a "fetch_data" function that simulates async I/O
+            functions.insert("fetch_data".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
+                if args.len() != 1 {
+                    return Err(PluginError::InvalidArgumentType);
+                }
+
+                let url = args[0].as_string().ok_or(PluginError::InvalidArgumentType)?;
+
+                // Simulate async data fetching
+                println!("[PLUGIN] Simulating async fetch from: {}", url);
+                Ok(Value::String(format!("Data from {}", url)))
+            }));
+
+            // Add a "process_batch" function that works with arrays
+            functions.insert("process_batch".to_string(), Box::new(|args: &[Value]| -> PluginResult<Value> {
+                if args.len() != 1 {
+                    return Err(PluginError::InvalidArgumentType);
+                }
+
+                let array = args[0].as_array().ok_or(PluginError::InvalidArgumentType)?;
+
+                // Process each item (simulate async work per item)
+                let mut results = Vec::new();
+                for (i, item) in array.iter().enumerate() {
+                    if let Some(num) = item.as_int() {
+                        println!("[PLUGIN] Processing item {}: {}", i, num);
+                        results.push(Value::Int(num * 2));
+                    } else {
+                        results.push(item.clone());
+                    }
+                }
+
+                Ok(Value::Array(results))
+            }));
+
+            println!("[{}] Plugin loaded successfully with {} functions", self.name, functions.len());
+
+            Ok(AsyncMockPlugin {
+                name: format!("async-mock-plugin-{}", self.name),
+                functions,
+            })
+        }
+
+        async fn call(
+            &self,
+            plugin: &Self::Plugin,
+            function_name: &str,
+            args: &[Value],
+        ) -> PluginResult<Value> {
+            println!("[{}] Async calling function '{}' with {} arguments",
+                     self.name, function_name, args.len());
+
+            // Simulate async function call overhead
+            tokio::time::sleep(Duration::from_millis(10)).await;
+
+            match plugin.functions.get(function_name) {
+                Some(func) => {
+                    let result = func(args)?;
+                    println!("[{}] Function '{}' completed", self.name, function_name);
+                    Ok(result)
+                },
+                None => Err(PluginError::FunctionNotFound(function_name.to_string())),
+            }
         }
     }
 }
 
+#[cfg(feature = "async")]
 #[tokio::main]
 async fn main() -> PluginResult<()> {
     println!("=== Asynchronous Plugin Runtime Example ===\n");
@@ -284,4 +286,9 @@ async fn main() -> PluginResult<()> {
     
     println!("\n=== Async Example completed successfully! ===");
     Ok(())
+}
+
+#[cfg(not(feature = "async"))]
+fn main() {
+    panic!("This example requires the 'async' feature to be enabled. Please run with `--features async`.");
 }

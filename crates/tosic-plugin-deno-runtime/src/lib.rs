@@ -1,6 +1,8 @@
+pub mod prelude;
+
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tosic_plugin_core::{HostContext, Plugin, PluginResult, PluginSource, Runtime, Value};
+use tosic_plugin_core::prelude::{HostContext, Plugin, PluginResult, PluginSource, Runtime, Value};
 use rustyscript::{Runtime as JsRuntime, RuntimeOptions, Module};
 
 /// Wrapper around a JavaScript runtime.

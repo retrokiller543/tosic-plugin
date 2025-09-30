@@ -19,7 +19,7 @@
 //! # Example
 //!
 //! ```rust
-//! use tosic_plugin_core::*;
+//! use tosic_plugin_core::prelude::*;
 //!
 //! // Create a host context and register functions
 //! let mut context = HostContext::new();
@@ -38,9 +38,9 @@
 
 pub mod traits;
 pub mod types;
-mod error;
+pub mod error;
+pub mod prelude;
 
-// Re-export core types and traits
-pub use error::*;
-pub use traits::{host_function::*, runtime::*};
-pub use types::*;
+
+pub use crate::error::PluginError;
+pub use crate::error::PluginResult;

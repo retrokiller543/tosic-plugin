@@ -1,7 +1,7 @@
 //! Runtime abstraction traits for plugin loading and execution.
 
 use crate::types::{HostContext, Value};
-use crate::{PluginResult, PluginSource};
+use crate::prelude::{PluginResult, PluginSource};
 
 /// Opaque handle to a loaded plugin instance.
 /// This trait represents a loaded piece of plugin code that can be executed.
