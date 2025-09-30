@@ -3,6 +3,9 @@
 # =============================================================================
 # A runtime-agnostic plugin system for Rust applications
 
+# Enable unstable features for advanced functionality
+set unstable
+
 # Project configuration
 PROJECT_DIR := justfile_directory()
 PROJECT_NAME := "tosic-plugin"
@@ -55,13 +58,6 @@ alias dev := develop
 alias ci := pipeline
 alias w := watch
 
-# Cross-compilation aliases
-alias cross := cross-all
-alias wasm := build-wasm
-
-# Testing aliases
-alias cov := test-coverage
-alias bench := test-bench
 
 # =============================================================================
 # Main Workflow Commands
@@ -77,7 +73,7 @@ develop *args="":
 # 🏗️ Complete CI pipeline
 [group('workflow')]
 pipeline: clean lint test build-release
-    @echo -e "{{BOLD}}{{GREEN}}✅ CI pipeline completed successfully{{NORMAL}}"
+    @echo "{{BOLD}}{{GREEN}}✅ CI pipeline completed successfully{{NORMAL}}"
 
 # 🎯 Quick development iteration
 [group('workflow')]
@@ -104,24 +100,24 @@ help:
 [group('info')]
 info:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}Tosic Plugin Build System{{NORMAL}}"
-    echo -e "{{BOLD}}{{CYAN}}==========================={{NORMAL}}"
-    echo ""
-    echo -e "{{BOLD}}{{YELLOW}}Project:{{NORMAL}} {{GREEN}}{{PROJECT_NAME}}{{NORMAL}}"
-    echo -e "{{BOLD}}{{YELLOW}}Directory:{{NORMAL}} {{BLUE}}{{PROJECT_DIR}}{{NORMAL}}"
-    echo ""
-    echo -e "{{BOLD}}{{CYAN}}Configuration:{{NORMAL}}"
-    echo -e "  {{YELLOW}}Profile:{{NORMAL}} {{profile}}"
-    echo -e "  {{YELLOW}}Target:{{NORMAL}} ${TARGET:-native}"
-    echo -e "  {{YELLOW}}Features:{{NORMAL}} ${FEATURES:-default}"
-    echo -e "  {{YELLOW}}Verbose:{{NORMAL}} {{verbose}}"
-    echo -e "  {{YELLOW}}Jobs:{{NORMAL}} ${JOBS:-auto}"
-    echo ""
-    echo -e "{{BOLD}}{{CYAN}}Quick Start:{{NORMAL}}"
-    echo -e "  {{CYAN}}just dev{{NORMAL}}     - Start development workflow"
-    echo -e "  {{CYAN}}just test{{NORMAL}}    - Run all tests"
-    echo -e "  {{CYAN}}just release{{NORMAL}} - Build optimized release"
-    echo -e "  {{CYAN}}just help{{NORMAL}}    - Show all commands"
+    printf "{{BOLD}}{{CYAN}}Tosic Plugin Build System{{NORMAL}}\n"
+    printf "{{BOLD}}{{CYAN}}===========================\n{{NORMAL}}"
+    printf "\n"
+    printf "{{BOLD}}{{YELLOW}}Project:{{NORMAL}} {{GREEN}}{{PROJECT_NAME}}{{NORMAL}}\n"
+    printf "{{BOLD}}{{YELLOW}}Directory:{{NORMAL}} {{BLUE}}{{PROJECT_DIR}}{{NORMAL}}\n"
+    printf "\n"
+    printf "{{BOLD}}{{CYAN}}Configuration:{{NORMAL}}\n"
+    printf "  {{YELLOW}}Profile:{{NORMAL}} {{profile}}\n"
+    printf "  {{YELLOW}}Target:{{NORMAL}} ${TARGET:-native}\n"
+    printf "  {{YELLOW}}Features:{{NORMAL}} ${FEATURES:-default}\n"
+    printf "  {{YELLOW}}Verbose:{{NORMAL}} {{verbose}}\n"
+    printf "  {{YELLOW}}Jobs:{{NORMAL}} ${JOBS:-auto}\n"
+    printf "\n"
+    printf "{{BOLD}}{{CYAN}}Quick Start:{{NORMAL}}\n"
+    printf "  {{CYAN}}just dev{{NORMAL}}     - Start development workflow\n"
+    printf "  {{CYAN}}just test{{NORMAL}}    - Run all tests\n"
+    printf "  {{CYAN}}just release{{NORMAL}} - Build optimized release\n"
+    printf "  {{CYAN}}just help{{NORMAL}}    - Show all commands\n"
 
 # Show brief help (alias)
 alias h := help

@@ -21,7 +21,7 @@ alias bc := build-core
 [group('build')]
 build *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}🏗️ Building for development...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}🏗️ Building for development...{{NORMAL}}"
     
     # Build command with configurable options
     cmd="cargo build --workspace"
@@ -51,13 +51,13 @@ build *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Development build completed{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Development build completed{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Development build failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Development build failed{{NORMAL}}"
         exit 1
     fi
 
@@ -65,7 +65,7 @@ build *args="":
 [group('build')]
 build-release *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}🚀 Building optimized release...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}🚀 Building optimized release...{{NORMAL}}"
     
     cmd="cargo build --workspace --release"
     
@@ -89,14 +89,14 @@ build-release *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Release build completed{{NORMAL}}"
-        echo -e "{{CYAN}}📁 Binaries available in target/release/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Release build completed{{NORMAL}}"
+        echo "{{CYAN}}📁 Binaries available in target/release/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Release build failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Release build failed{{NORMAL}}"
         exit 1
     fi
 
@@ -109,7 +109,7 @@ build-dev *args="":
 [group('build')]
 build-package package *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}📦 Building package: {{package}}...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}📦 Building package: {{package}}...{{NORMAL}}"
     
     cmd="cargo build --package {{package}}"
     
@@ -133,13 +133,13 @@ build-package package *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Package {{package}} built successfully{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Package {{package}} built successfully{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Package {{package}} build failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Package {{package}} build failed{{NORMAL}}"
         exit 1
     fi
 
@@ -157,12 +157,12 @@ build-main *args="":
 [group('build')]
 build-all *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}🏗️ Building all packages...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}🏗️ Building all packages...{{NORMAL}}"
     
     just build-core {{args}}
     just build-main {{args}}
     
-    echo -e "{{BOLD}}{{GREEN}}✅ All packages built successfully{{NORMAL}}"
+    echo "{{BOLD}}{{GREEN}}✅ All packages built successfully{{NORMAL}}"
 
 # =============================================================================
 # WebAssembly Builds
@@ -173,11 +173,11 @@ build-all *args="":
 [group('wasm')]
 build-wasm *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}🕸️ Building for WebAssembly...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}🕸️ Building for WebAssembly...{{NORMAL}}"
     
     # Check if wasm32 target is installed
     if ! rustup target list --installed | grep -q "wasm32-unknown-unknown"; then
-        echo -e "{{YELLOW}}📦 Installing wasm32-unknown-unknown target...{{NORMAL}}"
+        echo "{{YELLOW}}📦 Installing wasm32-unknown-unknown target...{{NORMAL}}"
         rustup target add wasm32-unknown-unknown
     fi
     
@@ -198,14 +198,14 @@ build-wasm *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ WebAssembly build completed{{NORMAL}}"
-        echo -e "{{CYAN}}📁 WASM files available in target/wasm32-unknown-unknown/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ WebAssembly build completed{{NORMAL}}"
+        echo "{{CYAN}}📁 WASM files available in target/wasm32-unknown-unknown/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ WebAssembly build failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ WebAssembly build failed{{NORMAL}}"
         exit 1
     fi
 
@@ -214,11 +214,11 @@ build-wasm *args="":
 [group('wasm')]
 build-wasm-pack package="tosic-plugin" *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{BLUE}}📦 Building WASM package with wasm-pack: {{package}}...{{NORMAL}}"
+    echo "{{BOLD}}{{BLUE}}📦 Building WASM package with wasm-pack: {{package}}...{{NORMAL}}"
     
     # Check if wasm-pack is available
     if ! command -v wasm-pack &> /dev/null; then
-        echo -e "{{BOLD}}{{RED}}❌ wasm-pack not found. Install it with: cargo install wasm-pack{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ wasm-pack not found. Install it with: cargo install wasm-pack{{NORMAL}}"
         exit 1
     fi
     
@@ -238,14 +238,14 @@ build-wasm-pack package="tosic-plugin" *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ WASM package {{package}} built successfully{{NORMAL}}"
-        echo -e "{{CYAN}}📁 Package available in crates/{{package}}/pkg/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ WASM package {{package}} built successfully{{NORMAL}}"
+        echo "{{CYAN}}📁 Package available in crates/{{package}}/pkg/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ WASM package {{package}} build failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ WASM package {{package}} build failed{{NORMAL}}"
         exit 1
     fi
 
@@ -257,7 +257,7 @@ build-wasm-pack package="tosic-plugin" *args="":
 [group('build')]
 check *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}✅ Running quick check...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}✅ Running quick check...{{NORMAL}}"
     
     cmd="cargo check --workspace"
     
@@ -276,13 +276,13 @@ check *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Check completed successfully{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Check completed successfully{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Check failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Check failed{{NORMAL}}"
         exit 1
     fi
 
@@ -290,7 +290,7 @@ check *args="":
 [group('build')]
 check-package package *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}🔍 Checking package: {{package}}...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}🔍 Checking package: {{package}}...{{NORMAL}}"
     
     cmd="cargo check --package {{package}}"
     
@@ -309,12 +309,12 @@ check-package package *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Package {{package}} check completed{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Package {{package}} check completed{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Package {{package}} check failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Package {{package}} check failed{{NORMAL}}"
         exit 1
     fi

@@ -108,45 +108,72 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Build System
 
-Tosic Plugin uses a comprehensive build system based on **Just** (justfile) that supports:
+Tosic Plugin uses a comprehensive build system based on **Just** (justfile) with **115+ commands** organized into logical groups:
 
-### Quick Commands
+### Quick Start Commands
 
 ```bash
 just dev          # Start development (build + test + watch)
 just test         # Run all tests  
 just release      # Build optimized release
-just help         # Show all available commands
+just help         # Show all 115+ available commands
+just config       # Show current configuration and env vars
 ```
 
 ### Cross-Platform Builds
 
 ```bash
-just cross-macos      # Build for macOS (Intel + ARM)
-just cross-linux     # Build for Linux (x64 + ARM + musl)
-just cross-windows    # Build for Windows (MSVC + GNU)
-just cross-wasm       # Build for WebAssembly
+just cross-macos     # Build for macOS (Intel + ARM)
+just cross-linux    # Build for Linux (x64 + ARM, glibc + musl)
+just cross-windows   # Build for Windows (MSVC + GNU)
+just cross-wasm      # Build for WebAssembly (WASM32 + WASI)
+just cross-all       # Build for all platforms
 ```
 
-### Development Tools
+### Security & Quality Tools
 
 ```bash
-just lint         # Run formatting and linting
-just docs-open    # Generate and open documentation
-just clean        # Clean build artifacts
-just audit        # Security audit
-just deps         # Show dependency information
+just lint            # Comprehensive linting (clippy + formatting)
+just security-audit  # Security vulnerability scan
+just security-deny   # Dependency policy checking  
+just deps-unused     # Find unused dependencies
+just test-coverage   # Generate test coverage reports
 ```
 
-### Configuration
-
-The build system supports configuration via environment variables:
+### Documentation & Analysis
 
 ```bash
+just docs-open       # Generate and open documentation
+just docs-serve      # Serve docs locally with hot reload
+just lines           # Count lines of code with tokei
+just perf-build      # Analyze build performance
+just git-stats       # Show git repository statistics
+```
+
+### Workspace Management
+
+```bash
+just new-crate name  # Create new crate in workspace
+just list-crates     # List all workspace crates
+just add-dep dep     # Add dependency with features support
+just update-dep dep  # Update specific dependency
+```
+
+### Configuration & Debugging
+
+The build system supports configuration via environment variables and provides debugging tools:
+
+```bash
+# Configuration
 PROFILE=release just build    # Release build
 TARGET=aarch64-apple-darwin just build  # Specific target
 FEATURES=serde just test      # With features
 VERBOSE=2 just build          # Verbose output
+
+# Debugging
+just config       # Show all environment variables and settings
+just env          # Show Rust/Cargo environment variables
+just project-status  # Show project overview and status
 ```
 
 ## Project Structure
@@ -161,15 +188,22 @@ tosic-plugin/
 │   │   │   └── error.rs      # Error types
 │   │   └── examples/         # Usage examples
 │   └── tosic-plugin/         # Main library crate
-├── just/                     # Modular build commands
-│   ├── build.just           # Build commands
-│   ├── test.just            # Testing commands
-│   ├── cross.just           # Cross-compilation
-│   ├── docs.just            # Documentation
-│   ├── lint.just            # Linting and formatting
-│   └── util.just            # Utilities
-├── justfile                 # Main build system entry
-└── flake.nix               # Nix development environment
+├── docs/                     # Development documentation
+│   ├── DEVELOPMENT.md        # Detailed development guide
+│   ├── BUILD_SYSTEM.md       # Complete build system reference
+│   ├── CROSS_COMPILATION.md  # Cross-platform build guide
+│   ├── SECURITY.md           # Security tools and practices
+│   └── WORKFLOWS.md          # Development workflows
+├── just/                     # Modular build commands (115+ commands)
+│   ├── build.just           # Build commands (dev, release, WASM)
+│   ├── test.just            # Testing commands (unit, integration, coverage)
+│   ├── cross.just           # Cross-compilation (all platforms)
+│   ├── docs.just            # Documentation generation and serving
+│   ├── lint.just            # Linting, formatting, security auditing
+│   └── util.just            # Utilities and workspace management
+├── justfile                 # Main build system entry point
+├── flake.nix               # Nix development environment
+└── README.md               # This file
 ```
 
 ## Supported Platforms
@@ -197,33 +231,29 @@ nix develop  # or ensure tools are installed
 just dev
 ```
 
-### Making Changes
+For detailed development workflows, see the [docs/](docs/) directory:
+
+- **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** - Complete development setup and workflows
+- **[docs/BUILD_SYSTEM.md](docs/BUILD_SYSTEM.md)** - Full build system reference (115+ commands)
+- **[docs/CROSS_COMPILATION.md](docs/CROSS_COMPILATION.md)** - Cross-platform building guide
+- **[docs/SECURITY.md](docs/SECURITY.md)** - Security tools and best practices
+- **[docs/WORKFLOWS.md](docs/WORKFLOWS.md)** - Common development workflows
+
+### Quick Reference
 
 ```bash
 # Quick iteration
 just quick               # Fast build + basic tests
+just dev                 # Development workflow (build + test + watch)
 
 # Full validation
 just ci                  # Complete CI pipeline
+just cross-all           # Test all cross-compilation targets
 
-# Specific tasks
-just test-unit           # Unit tests only
-just build-release       # Optimized build
-just docs                # Generate documentation
-```
-
-### Quality Assurance
-
-```bash
-# Code quality
-just lint                # Format + lint
-just audit               # Security audit
-just deps-outdated       # Check outdated dependencies
-
-# Testing
-just test-all            # All tests including integration
-just test-coverage       # Test coverage report
-just cross-all           # Test cross-compilation
+# Quality assurance
+just lint                # Format + lint + security checks
+just test-coverage       # Generate test coverage reports
+just docs-open           # Generate and view documentation
 ```
 
 ## Contributing

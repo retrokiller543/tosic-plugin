@@ -15,7 +15,7 @@ alias docs-c := docs-clean
 [group('docs')]
 docs *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📚 Generating documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📚 Generating documentation...{{NORMAL}}"
     
     cmd="cargo doc --workspace --no-deps"
     
@@ -29,14 +29,14 @@ docs *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Documentation generated{{NORMAL}}"
-        echo -e "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Documentation generated{{NORMAL}}"
+        echo "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
         exit 1
     fi
 
@@ -44,7 +44,7 @@ docs *args="":
 [group('docs')]
 docs-open *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📚 Generating and opening documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📚 Generating and opening documentation...{{NORMAL}}"
     
     cmd="cargo doc --workspace --no-deps --open"
     
@@ -58,13 +58,13 @@ docs-open *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Documentation generated and opened{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Documentation generated and opened{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
         exit 1
     fi
 
@@ -72,7 +72,7 @@ docs-open *args="":
 [group('docs')]
 docs-all *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📚 Generating documentation with dependencies...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📚 Generating documentation with dependencies...{{NORMAL}}"
     
     cmd="cargo doc --workspace"
     
@@ -86,14 +86,14 @@ docs-all *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Full documentation generated{{NORMAL}}"
-        echo -e "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Full documentation generated{{NORMAL}}"
+        echo "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Documentation generation failed{{NORMAL}}"
         exit 1
     fi
 
@@ -101,7 +101,7 @@ docs-all *args="":
 [group('docs')]
 docs-package package *args="":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📚 Generating documentation for package: {{package}}...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📚 Generating documentation for package: {{package}}...{{NORMAL}}"
     
     cmd="cargo doc --package {{package}} --no-deps"
     
@@ -115,13 +115,13 @@ docs-package package *args="":
         cmd="$cmd {{args}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Package {{package}} documentation generated{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Package {{package}} documentation generated{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Package {{package}} documentation generation failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Package {{package}} documentation generation failed{{NORMAL}}"
         exit 1
     fi
 
@@ -133,28 +133,28 @@ docs-package package *args="":
 [group('docs')]
 docs-serve port="8000":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}🌐 Serving documentation on port {{port}}...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}🌐 Serving documentation on port {{port}}...{{NORMAL}}"
     
     # Check if documentation exists
     if [ ! -d "target/doc" ]; then
-        echo -e "{{YELLOW}}📚 Documentation not found, generating first...{{NORMAL}}"
+        echo "{{YELLOW}}📚 Documentation not found, generating first...{{NORMAL}}"
         just docs
     fi
     
     # Check if miniserve is available
     if command -v miniserve &> /dev/null; then
-        echo -e "{{CYAN}}Using miniserve to serve documentation...{{NORMAL}}"
+        echo "{{CYAN}}Using miniserve to serve documentation...{{NORMAL}}"
         miniserve target/doc --port {{port}} --index index.html
     elif command -v python3 &> /dev/null; then
-        echo -e "{{CYAN}}Using Python to serve documentation...{{NORMAL}}"
+        echo "{{CYAN}}Using Python to serve documentation...{{NORMAL}}"
         cd target/doc && python3 -m http.server {{port}}
     elif command -v python &> /dev/null; then
-        echo -e "{{CYAN}}Using Python to serve documentation...{{NORMAL}}"
+        echo "{{CYAN}}Using Python to serve documentation...{{NORMAL}}"
         cd target/doc && python -m SimpleHTTPServer {{port}}
     else
-        echo -e "{{BOLD}}{{RED}}❌ No web server available{{NORMAL}}"
-        echo -e "{{YELLOW}}Install miniserve: cargo install miniserve{{NORMAL}}"
-        echo -e "{{YELLOW}}Or use Python: python3 -m http.server {{port}}{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ No web server available{{NORMAL}}"
+        echo "{{YELLOW}}Install miniserve: cargo install miniserve{{NORMAL}}"
+        echo "{{YELLOW}}Or use Python: python3 -m http.server {{port}}{{NORMAL}}"
         exit 1
     fi
 
@@ -162,16 +162,16 @@ docs-serve port="8000":
 [group('docs')]
 docs-watch port="8000":
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}🌐 Watching and serving documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}🌐 Watching and serving documentation...{{NORMAL}}"
     
     # Check if cargo-watch is available
     if ! command -v cargo-watch &> /dev/null; then
-        echo -e "{{YELLOW}}📦 Installing cargo-watch...{{NORMAL}}"
+        echo "{{YELLOW}}📦 Installing cargo-watch...{{NORMAL}}"
         cargo install cargo-watch
     fi
     
-    echo -e "{{CYAN}}Starting documentation watch mode on port {{port}}...{{NORMAL}}"
-    echo -e "{{YELLOW}}Open http://localhost:{{port}} in your browser{{NORMAL}}"
+    echo "{{CYAN}}Starting documentation watch mode on port {{port}}...{{NORMAL}}"
+    echo "{{YELLOW}}Open http://localhost:{{port}} in your browser{{NORMAL}}"
     
     # Start background server and watch for changes
     cargo watch -x "doc --workspace --no-deps" &
@@ -191,21 +191,21 @@ docs-watch port="8000":
 [group('docs')]
 docs-check:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}🔍 Checking documentation links...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}🔍 Checking documentation links...{{NORMAL}}"
     
     # Check if cargo-deadlinks is available
     if ! command -v cargo-deadlinks &> /dev/null; then
-        echo -e "{{YELLOW}}📦 Installing cargo-deadlinks...{{NORMAL}}"
+        echo "{{YELLOW}}📦 Installing cargo-deadlinks...{{NORMAL}}"
         cargo install cargo-deadlinks
     fi
     
-    echo -e "{{CYAN}}Checking for broken links...{{NORMAL}}"
+    echo "{{CYAN}}Checking for broken links...{{NORMAL}}"
     cargo deadlinks
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ No broken links found{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ No broken links found{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Broken links detected{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Broken links detected{{NORMAL}}"
         exit 1
     fi
 
@@ -213,7 +213,7 @@ docs-check:
 [group('docs')]
 docs-coverage:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}🔍 Checking documentation coverage...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}🔍 Checking documentation coverage...{{NORMAL}}"
     
     # Use cargo to check for missing docs
     export RUSTDOCFLAGS="-D missing_docs"
@@ -225,13 +225,13 @@ docs-coverage:
         cmd="$cmd --features {{features}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Documentation coverage check passed{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Documentation coverage check passed{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Missing documentation detected{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Missing documentation detected{{NORMAL}}"
         exit 1
     fi
 
@@ -243,7 +243,7 @@ docs-coverage:
 [group('docs')]
 docs-private:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📖 Generating private documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📖 Generating private documentation...{{NORMAL}}"
     
     cmd="cargo doc --workspace --no-deps --document-private-items"
     
@@ -252,14 +252,14 @@ docs-private:
         cmd="$cmd --features {{features}}"
     fi
     
-    echo -e "{{CYAN}}Running: $cmd{{NORMAL}}"
+    echo "{{CYAN}}Running: $cmd{{NORMAL}}"
     eval $cmd
     
     if [ $? -eq 0 ]; then
-        echo -e "{{BOLD}}{{GREEN}}✅ Private documentation generated{{NORMAL}}"
-        echo -e "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
+        echo "{{BOLD}}{{GREEN}}✅ Private documentation generated{{NORMAL}}"
+        echo "{{CYAN}}📁 Documentation available in target/doc/{{NORMAL}}"
     else
-        echo -e "{{BOLD}}{{RED}}❌ Private documentation generation failed{{NORMAL}}"
+        echo "{{BOLD}}{{RED}}❌ Private documentation generation failed{{NORMAL}}"
         exit 1
     fi
 
@@ -267,20 +267,20 @@ docs-private:
 [group('docs')]
 docs-examples:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📖 Generating examples documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📖 Generating examples documentation...{{NORMAL}}"
     
     if [ -d "examples" ]; then
-        echo -e "{{CYAN}}Found examples directory{{NORMAL}}"
+        echo "{{CYAN}}Found examples directory{{NORMAL}}"
         cargo doc --workspace --no-deps --examples
         
         if [ $? -eq 0 ]; then
-            echo -e "{{BOLD}}{{GREEN}}✅ Examples documentation generated{{NORMAL}}"
+            echo "{{BOLD}}{{GREEN}}✅ Examples documentation generated{{NORMAL}}"
         else
-            echo -e "{{BOLD}}{{RED}}❌ Examples documentation generation failed{{NORMAL}}"
+            echo "{{BOLD}}{{RED}}❌ Examples documentation generation failed{{NORMAL}}"
             exit 1
         fi
     else
-        echo -e "{{YELLOW}}No examples directory found{{NORMAL}}"
+        echo "{{YELLOW}}No examples directory found{{NORMAL}}"
     fi
 
 # =============================================================================
@@ -291,11 +291,11 @@ docs-examples:
 [group('docs')]
 docs-clean:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}🧹 Cleaning documentation...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}🧹 Cleaning documentation...{{NORMAL}}"
     
     cargo clean --doc
     
-    echo -e "{{BOLD}}{{GREEN}}✅ Documentation cleaned{{NORMAL}}"
+    echo "{{BOLD}}{{GREEN}}✅ Documentation cleaned{{NORMAL}}"
 
 # =============================================================================
 # README and Markdown
@@ -305,7 +305,7 @@ docs-clean:
 [group('docs')]
 readme-check:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{YELLOW}}📝 Checking README links...{{NORMAL}}"
+    echo "{{BOLD}}{{YELLOW}}📝 Checking README links...{{NORMAL}}"
     
     if [ -f "README.md" ]; then
         # Check if markdown-link-check is available
@@ -313,24 +313,24 @@ readme-check:
             markdown-link-check README.md
             
             if [ $? -eq 0 ]; then
-                echo -e "{{BOLD}}{{GREEN}}✅ README links are valid{{NORMAL}}"
+                echo "{{BOLD}}{{GREEN}}✅ README links are valid{{NORMAL}}"
             else
-                echo -e "{{BOLD}}{{RED}}❌ Broken links found in README{{NORMAL}}"
+                echo "{{BOLD}}{{RED}}❌ Broken links found in README{{NORMAL}}"
                 exit 1
             fi
         else
-            echo -e "{{YELLOW}}markdown-link-check not found{{NORMAL}}"
-            echo -e "{{YELLOW}}Install with: npm install -g markdown-link-check{{NORMAL}}"
+            echo "{{YELLOW}}markdown-link-check not found{{NORMAL}}"
+            echo "{{YELLOW}}Install with: npm install -g markdown-link-check{{NORMAL}}"
         fi
     else
-        echo -e "{{YELLOW}}No README.md found{{NORMAL}}"
+        echo "{{YELLOW}}No README.md found{{NORMAL}}"
     fi
 
 # 📝 Generate API summary
 [group('docs')]
 api-summary:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📝 Generating API summary...{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📝 Generating API summary...{{NORMAL}}"
     
     echo "# API Summary" > API_SUMMARY.md
     echo "" >> API_SUMMARY.md
@@ -355,7 +355,7 @@ api-summary:
         fi
     done
     
-    echo -e "{{BOLD}}{{GREEN}}✅ API summary generated: API_SUMMARY.md{{NORMAL}}"
+    echo "{{BOLD}}{{GREEN}}✅ API summary generated: API_SUMMARY.md{{NORMAL}}"
 
 # =============================================================================
 # Documentation Utilities
@@ -365,26 +365,26 @@ api-summary:
 [group('docs')]
 docs-stats:
     #!/usr/bin/env bash
-    echo -e "{{BOLD}}{{CYAN}}📊 Documentation Statistics{{NORMAL}}"
-    echo -e "{{BOLD}}{{CYAN}}========================={{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}📊 Documentation Statistics{{NORMAL}}"
+    echo "{{BOLD}}{{CYAN}}========================={{NORMAL}}"
     echo ""
     
     if [ -d "target/doc" ]; then
-        echo -e "{{YELLOW}}Generated Documentation:{{NORMAL}}"
+        echo "{{YELLOW}}Generated Documentation:{{NORMAL}}"
         echo "  HTML files: $(find target/doc -name "*.html" | wc -l)"
         echo "  Total size: $(du -sh target/doc | cut -f1)"
         echo ""
     else
-        echo -e "{{YELLOW}}No documentation found{{NORMAL}}"
+        echo "{{YELLOW}}No documentation found{{NORMAL}}"
         echo "  Run 'just docs' to generate documentation"
         echo ""
     fi
     
-    echo -e "{{YELLOW}}Source Documentation:{{NORMAL}}"
+    echo "{{YELLOW}}Source Documentation:{{NORMAL}}"
     echo "  Rust files with doc comments: $(find crates -name "*.rs" -exec grep -l "///" {} \; | wc -l)"
     echo "  Total doc comments: $(find crates -name "*.rs" -exec grep -c "///" {} \; | awk '{sum += $1} END {print sum}')"
     echo ""
     
-    echo -e "{{YELLOW}}README Files:{{NORMAL}}"
+    echo "{{YELLOW}}README Files:{{NORMAL}}"
     echo "  README files: $(find . -name "README*" -not -path "./target/*" | wc -l)"
     echo "  Markdown files: $(find . -name "*.md" -not -path "./target/*" | wc -l)"
