@@ -10,11 +10,36 @@ use crate::traits::host_function::HostFunction;
 /// Type-erased host function that can be stored in the context.
 type BoxedHostFunction = Arc<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>;
 
+/// Iterator that takes ownership of HostContext and yields its functions.
+pub struct HostContextIntoIter {
+    inner: std::collections::hash_map::IntoIter<String, BoxedHostFunction>,
+}
+
 /// Context containing host functions that can be injected into plugin runtimes.
 /// Functions are identified by their string names and can be called from plugins.
 #[derive(Default, Clone)]
 pub struct HostContext {
     functions: HashMap<String, BoxedHostFunction>,
+}
+
+
+impl IntoIterator for HostContext {
+    type Item = (String, BoxedHostFunction);
+    type IntoIter = HostContextIntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        HostContextIntoIter {
+            inner: self.functions.into_iter()
+        }
+    }
+}
+
+impl Iterator for HostContextIntoIter {
+    type Item = (String, BoxedHostFunction);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.inner.next()
+    }
 }
 
 impl HostContext {
@@ -51,6 +76,12 @@ impl HostContext {
     /// Returns all registered function names.
     pub fn function_names(&self) -> impl Iterator<Item = &String> {
         self.functions.keys()
+    }
+
+    /// Returns an iterator over all registered functions as (name, function) pairs.
+    /// This is more efficient than iterating over names when you need both.
+    pub fn functions(&self) -> impl Iterator<Item = (&String, &BoxedHostFunction)> {
+        self.functions.iter()
     }
 
     /// Returns true if a function with the given name is registered.

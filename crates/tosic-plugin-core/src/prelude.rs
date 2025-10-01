@@ -3,3 +3,6 @@
 pub use crate::traits::*;
 pub use crate::types::*;
 pub use crate::error::*;
+
+#[cfg(feature = "async")]
+pub extern crate async_trait; 

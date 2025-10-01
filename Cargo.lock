@@ -3131,8 +3131,10 @@ dependencies = [
 name = "tosic-plugin-deno-runtime"
 version = "1.0.0-alpha.1"
 dependencies = [
+ "glob",
  "rustyscript",
  "serde_json",
+ "tokio",
  "tosic-plugin-core",
 ]
 

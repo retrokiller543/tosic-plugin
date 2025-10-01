@@ -39,8 +39,8 @@
 pub mod traits;
 pub mod types;
 pub mod error;
+pub mod managers;
 pub mod prelude;
-
 
 pub use crate::error::PluginError;
 pub use crate::error::PluginResult;

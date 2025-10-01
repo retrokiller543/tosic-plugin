@@ -12,11 +12,13 @@
 use crate::plugin::*;
 
 #[cfg(feature = "async")]
+use std::sync::Arc;
+
+#[cfg(feature = "async")]
 mod plugin {
     use std::collections::HashMap;
     use std::time::Duration;
     
-    pub use std::sync::Arc;
     pub use tosic_plugin_core::prelude::*;
 
     /// Mock plugin implementation that simulates an async plugin with predefined functions.
@@ -29,16 +31,20 @@ mod plugin {
         fn name(&self) -> Option<&str> {
             Some(&self.name)
         }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
     }
 
     /// Mock async runtime implementation that simulates plugin loading and execution.
     #[derive(Default)]
-    struct AsyncMockRuntime {
+    pub struct AsyncMockRuntime {
         name: String,
     }
 
     impl AsyncMockRuntime {
-        fn new(name: impl Into<String>) -> Self {
+        pub fn new(name: impl Into<String>) -> Self {
             Self {
                 name: name.into(),
             }
@@ -47,17 +53,30 @@ mod plugin {
 
     #[async_trait::async_trait]
     impl Runtime for AsyncMockRuntime {
-        type Plugin = AsyncMockPlugin;
+        fn runtime_name(&self) -> &'static str {
+            "async-mock"
+        }
 
-        async fn load(&self, bytes: &[u8], _context: &HostContext) -> PluginResult<Self::Plugin> {
+        fn supports_plugin(&self, source: &PluginSource) -> bool {
+            match source {
+                PluginSource::Code(_) => true,
+                PluginSource::Bytes(_) => true,
+                PluginSource::FilePath(path) => path.ends_with(".async"),
+            }
+        }
+
+        async fn load(&mut self, source: &PluginSource, _context: &HostContext) -> PluginResult<Box<dyn Plugin>> {
             // Simulate async plugin loading (e.g., network fetch, compilation, etc.)
-            println!("[{}] Starting async plugin load from {} bytes...", self.name, bytes.len());
+            let plugin_code = match source {
+                PluginSource::Code(code) => code.clone(),
+                PluginSource::Bytes(bytes) => String::from_utf8_lossy(bytes).to_string(),
+                PluginSource::FilePath(path) => format!("async plugin from {}", path),
+            };
+            println!("[{}] Starting async plugin load: {}", self.name, plugin_code);
 
             // Simulate some async work
             tokio::time::sleep(Duration::from_millis(100)).await;
-
-            let plugin_code = String::from_utf8_lossy(bytes);
-            println!("[{}] Loaded plugin code: {}", self.name, plugin_code);
+            println!("[{}] Loaded plugin code", self.name);
 
             // Create a mock plugin with some async-aware functions
             let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
@@ -113,15 +132,15 @@ mod plugin {
 
             println!("[{}] Plugin loaded successfully with {} functions", self.name, functions.len());
 
-            Ok(AsyncMockPlugin {
+            Ok(Box::new(AsyncMockPlugin {
                 name: format!("async-mock-plugin-{}", self.name),
                 functions,
-            })
+            }))
         }
 
         async fn call(
             &self,
-            plugin: &Self::Plugin,
+            plugin: &dyn Plugin,
             function_name: &str,
             args: &[Value],
         ) -> PluginResult<Value> {
@@ -130,6 +149,9 @@ mod plugin {
 
             // Simulate async function call overhead
             tokio::time::sleep(Duration::from_millis(10)).await;
+
+            let plugin = plugin.as_any().downcast_ref::<AsyncMockPlugin>()
+                .ok_or(PluginError::InvalidPluginState)?;
 
             match plugin.functions.get(function_name) {
                 Some(func) => {
@@ -147,6 +169,20 @@ mod plugin {
 #[tokio::main]
 async fn main() -> PluginResult<()> {
     println!("=== Asynchronous Plugin Runtime Example ===\n");
+    run_async_example().await
+}
+
+#[cfg(feature = "async")]
+async fn run_async_example() -> PluginResult<()> {
+    // Create a multi-runtime manager to demonstrate async usage
+    let mut manager = tosic_plugin_core::managers::MultiRuntimeManager::new();
+    
+    // Register multiple async mock runtimes
+    manager.register_runtime(Box::new(plugin::AsyncMockRuntime::new("Runtime-1")));
+    manager.register_runtime(Box::new(plugin::AsyncMockRuntime::new("Runtime-2")));
+    
+    println!("Registered runtimes: {:?}", manager.runtime_names());
+    println!("Runtime count: {}\n", manager.runtime_count());
     
     // Create a host context and register some host functions
     let mut host_context = HostContext::new();
@@ -175,63 +211,55 @@ async fn main() -> PluginResult<()> {
     println!("Registered host functions: {:?}\n", 
              host_context.function_names().collect::<Vec<_>>());
     
-    // Create multiple runtimes to demonstrate concurrent execution
-    let runtime1 = Arc::new(AsyncMockRuntime::new("Runtime-1"));
-    let runtime2 = Arc::new(AsyncMockRuntime::new("Runtime-2"));
+    // Load plugins using the manager
+    println!("=== Loading Plugins with Manager ===\n");
     
-    // Simulate different plugin codes
-    let plugin_code1 = b"async plugin v1.0 - math operations";
-    let plugin_code2 = b"async plugin v2.0 - data processing";
+    let plugin1_source = PluginSource::Bytes(b"async plugin v1.0 - math operations".to_vec());
+    let plugin2_source = PluginSource::Code("async plugin v2.0 - data processing".to_string());
     
-    println!("=== Loading Plugins Concurrently ===\n");
+    let plugin1_id = manager.load_plugin(plugin1_source, &host_context).await?;
+    let plugin2_id = manager.load_plugin(plugin2_source, &host_context).await?;
     
-    // Load plugins concurrently
-    let (plugin1, plugin2) = tokio::try_join!(
-        runtime1.load(plugin_code1, &host_context),
-        runtime2.load(plugin_code2, &host_context)
-    )?;
+    println!("Loaded plugins with IDs: {:?} and {:?}", plugin1_id, plugin2_id);
+    if let Some(name1) = manager.plugin_name(plugin1_id) {
+        println!("Plugin 1 name: {}", name1);
+    }
+    if let Some(name2) = manager.plugin_name(plugin2_id) {
+        println!("Plugin 2 name: {}\n", name2);
+    }
     
-    let plugin1 = Arc::new(plugin1);
-    let plugin2 = Arc::new(plugin2);
-    
-    println!("Loaded plugins: '{}' and '{}'\n", 
-             plugin1.name().unwrap_or("unknown"), 
-             plugin2.name().unwrap_or("unknown"));
-    
-    // Test concurrent plugin function calls
+    // Test concurrent plugin function calls using the manager
     println!("=== Testing Concurrent Plugin Function Calls ===\n");
     
     // Execute multiple operations concurrently
+    let manager = Arc::new(manager);
     let operations = vec![
         tokio::spawn({
-            let runtime = Arc::clone(&runtime1);
-            let plugin = Arc::clone(&plugin1);
+            let manager = Arc::clone(&manager);
             async move {
                 println!("Task 1: Starting add operation");
-                let result = runtime.call(&*plugin, "add", &[Value::Int(10), Value::Int(20)]).await;
+                let result = manager.call_plugin(plugin1_id, "add", &[Value::Int(10), Value::Int(20)]).await;
                 println!("Task 1: Add completed");
                 result
             }
         }),
         
         tokio::spawn({
-            let runtime = Arc::clone(&runtime2);
-            let plugin = Arc::clone(&plugin2);
+            let manager = Arc::clone(&manager);
             async move {
                 println!("Task 2: Starting fetch_data operation");
-                let result = runtime.call(&*plugin, "fetch_data", &[Value::String("https://api.example.com/data".to_string())]).await;
+                let result = manager.call_plugin(plugin2_id, "fetch_data", &[Value::String("https://api.example.com/data".to_string())]).await;
                 println!("Task 2: Fetch completed");
                 result
             }
         }),
         
         tokio::spawn({
-            let runtime = Arc::clone(&runtime1);
-            let plugin = Arc::clone(&plugin1);
+            let manager = Arc::clone(&manager);
             async move {
                 println!("Task 3: Starting batch processing");
                 let batch = vec![Value::Int(1), Value::Int(2), Value::Int(3), Value::Int(4)];
-                let result = runtime.call(&*plugin, "process_batch", &[Value::Array(batch)]).await;
+                let result = manager.call_plugin(plugin1_id, "process_batch", &[Value::Array(batch)]).await;
                 println!("Task 3: Batch processing completed");
                 result
             }
@@ -273,16 +301,33 @@ async fn main() -> PluginResult<()> {
     println!("\n=== Testing Error Handling ===\n");
     
     println!("Testing invalid function call...");
-    match runtime1.call(&plugin1, "nonexistent", &[]).await {
+    match manager.call_plugin(plugin1_id, "nonexistent", &[]).await {
         Ok(_) => println!("Unexpected success!"),
         Err(e) => println!("Expected error: {}", e),
     }
     
     println!("\nTesting invalid arguments...");
-    match runtime2.call(&plugin2, "add", &[Value::String("not a number".to_string())]).await {
+    match manager.call_plugin(plugin2_id, "add", &[Value::String("not a number".to_string())]).await {
         Ok(_) => println!("Unexpected success!"),
         Err(e) => println!("Expected error: {}", e),
     }
+    
+    // Show manager statistics
+    println!("\n=== Manager Statistics ===");
+    println!("Total plugins loaded: {}", manager.plugin_count());
+    println!("Plugin IDs: {:?}", manager.plugin_ids().collect::<Vec<_>>());
+    
+    // Cleanup - extract manager from Arc for cleanup
+    let mut manager = match Arc::try_unwrap(manager) {
+        Ok(manager) => manager,
+        Err(_) => return Err(crate::PluginError::RuntimeError("Failed to cleanup manager".to_string())),
+    };
+    
+    manager.unload_plugin(plugin1_id).await?;
+    manager.unload_plugin(plugin2_id).await?;
+    
+    println!("\nAll plugins unloaded successfully!");
+    println!("Final plugin count: {}", manager.plugin_count());
     
     println!("\n=== Async Example completed successfully! ===");
     Ok(())

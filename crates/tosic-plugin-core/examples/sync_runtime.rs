@@ -25,25 +25,43 @@ mod plugin {
         fn name(&self) -> Option<&str> {
             Some(&self.name)
         }
+
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
     }
 
     /// Mock runtime implementation that simulates plugin loading and execution.
     #[derive(Default)]
-    struct MockRuntime {}
+    pub struct MockRuntime {}
 
     impl MockRuntime {
-        fn new() -> Self {
+        pub fn new() -> Self {
             Self::default()
         }
     }
 
     impl Runtime for MockRuntime {
-        type Plugin = MockPlugin;
+        fn runtime_name(&self) -> &'static str {
+            "mock"
+        }
 
-        fn load(&mut self, bytes: &PluginSource, _context: &HostContext) -> PluginResult<()> {
-            // Simulate plugin loading from bytes
-            let plugin_code = String::from_utf8_lossy(bytes);
-            println!("Loading plugin from {} bytes: {}", bytes.len(), plugin_code);
+        fn supports_plugin(&self, source: &PluginSource) -> bool {
+            match source {
+                PluginSource::Code(_) => true,
+                PluginSource::Bytes(_) => true,
+                PluginSource::FilePath(path) => path.ends_with(".mock"),
+            }
+        }
+
+        fn load(&mut self, source: &PluginSource, _context: &HostContext) -> PluginResult<Box<dyn Plugin>> {
+            // Simulate plugin loading from source
+            let plugin_code = match source {
+                PluginSource::Code(code) => code.clone(),
+                PluginSource::Bytes(bytes) => String::from_utf8_lossy(bytes).to_string(),
+                PluginSource::FilePath(path) => format!("mock plugin from {}", path),
+            };
+            println!("Loading plugin: {}", plugin_code);
 
             // Create a mock plugin with some predefined functions
             let mut functions: HashMap<String, Box<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>> = HashMap::new();
@@ -74,19 +92,24 @@ mod plugin {
                 Ok(Value::String(format!("Hello from plugin, {}!", name)))
             }));
 
-            Ok(MockPlugin {
+            let plugin = MockPlugin {
                 name: "mock-plugin".to_string(),
                 functions,
-            })
+            };
+
+            Ok(Box::new(plugin))
         }
 
         fn call(
             &self,
-            plugin: &Self::Plugin,
+            plugin: &dyn Plugin,
             function_name: &str,
             args: &[Value],
         ) -> PluginResult<Value> {
             println!("Calling function '{}' with {} arguments", function_name, args.len());
+
+            let plugin = plugin.as_any().downcast_ref::<MockPlugin>()
+                .ok_or(PluginError::InvalidPluginState)?;
 
             match plugin.functions.get(function_name) {
                 Some(func) => func(args),
@@ -124,14 +147,14 @@ fn main() -> PluginResult<()> {
              host_context.function_names().collect::<Vec<_>>());
     
     // Create the runtime
-    let runtime = MockRuntime::new();
+    let mut runtime = plugin::MockRuntime::new();
     
-    // Simulate plugin code (in a real implementation, this would be WASM, JS, etc.)
-    let plugin_code = b"mock plugin code with add and greet functions";
+    // Simulate plugin source (in a real implementation, this would be WASM, JS, etc.)
+    let plugin_source = PluginSource::Bytes(b"mock plugin code with add and greet functions".to_vec());
     
     // Load the plugin
     println!("Loading plugin...");
-    let plugin = runtime.load(plugin_code, &host_context)?;
+    let plugin = runtime.load(&plugin_source, &host_context)?;
     println!("Loaded plugin: {:?}\n", plugin.name());
     
     // Test calling plugin functions
@@ -139,12 +162,12 @@ fn main() -> PluginResult<()> {
     
     // Test the "add" function
     println!("1. Calling add(5, 3):");
-    let result = runtime.call(&plugin, "add", &[Value::Int(5), Value::Int(3)])?;
+    let result = runtime.call(&*plugin, "add", &[Value::Int(5), Value::Int(3)])?;
     println!("   Result: {:?}\n", result);
     
     // Test the "greet" function (which calls host functions)
     println!("2. Calling greet('World'):");
-    let result = runtime.call(&plugin, "greet", &[Value::String("World".to_string())])?;
+    let result = runtime.call(&*plugin, "greet", &[Value::String("World".to_string())])?;
     println!("   Result: {:?}\n", result);
     
     // Test calling host functions directly
