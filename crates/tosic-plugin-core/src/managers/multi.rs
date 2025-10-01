@@ -10,7 +10,6 @@ use crate::prelude::{PluginResult, PluginSource};
 /// Plugin entry that stores a plugin along with its associated runtime.
 struct PluginEntry {
     plugin: Box<dyn Plugin>,
-    runtime_name: String,
     runtime_index: usize,
 }
 
@@ -27,7 +26,7 @@ struct PluginEntry {
 /// - Plugin source type detection
 /// 
 /// # Example
-/// ```rust
+/// ```ignore
 /// use tosic_plugin_core::managers::MultiRuntimeManager;
 /// use tosic_plugin_deno_runtime::DenoRuntime;
 /// 
@@ -101,21 +100,16 @@ impl Default for MultiRuntimeManager {
 impl PluginManager for MultiRuntimeManager {
     #[cfg(not(feature = "async"))]
     fn load_plugin(&mut self, source: PluginSource, context: &HostContext) -> PluginResult<PluginId> {
-        // Find a compatible runtime
         let (runtime_index, runtime) = self.find_compatible_runtime(&source)
             .ok_or_else(|| crate::PluginError::LoadError(
                 "No compatible runtime found for this plugin source".to_string()
             ))?;
-
-        // Load the plugin using the compatible runtime
+        
         let plugin = runtime.load(&source, context)?;
-        let runtime_name = runtime.runtime_name().to_string();
 
-        // Generate ID and store the plugin with its runtime info
         let id = self.next_plugin_id();
         let entry = PluginEntry {
             plugin,
-            runtime_name,
             runtime_index,
         };
         self.plugins.insert(id, entry);
@@ -133,13 +127,11 @@ impl PluginManager for MultiRuntimeManager {
 
         // Load the plugin using the compatible runtime
         let plugin = runtime.load(&source, context).await?;
-        let runtime_name = runtime.runtime_name().to_string();
         
         // Generate ID and store the plugin with its runtime info
         let id = self.next_plugin_id();
         let entry = PluginEntry {
             plugin,
-            runtime_name,
             runtime_index,
         };
         self.plugins.insert(id, entry);

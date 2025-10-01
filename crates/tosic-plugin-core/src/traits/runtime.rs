@@ -16,7 +16,7 @@ pub trait Plugin {
     /// Returns a reference to the plugin as Any for downcasting.
     fn as_any(&self) -> &dyn Any;
 
-    // Returns a mutable reference to the plugin as Any for downcasting.
+    /// Returns a mutable reference to the plugin as Any for downcasting.
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
@@ -32,7 +32,7 @@ pub trait Plugin: Send + Sync {
     /// Returns a reference to the plugin as Any for downcasting.
     fn as_any(&self) -> &dyn Any;
     
-    // Returns a mutable reference to the plugin as Any for downcasting.
+    /// Returns a mutable reference to the plugin as Any for downcasting.
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 

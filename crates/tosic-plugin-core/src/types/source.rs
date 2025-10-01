@@ -1,3 +1,4 @@
+/// Represents the source of a plugin, which can be provided in various formats.
 pub enum PluginSource {
     /// Plugin source code as a string.
     Code(String),

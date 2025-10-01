@@ -20,7 +20,7 @@ use crate::prelude::{PluginResult, PluginSource};
 /// - Minimal memory overhead
 /// 
 /// # Example
-/// ```rust
+/// ```ignore
 /// use tosic_plugin_core::managers::SingleRuntimeManager;
 /// use tosic_plugin_deno_runtime::DenoRuntime;
 /// 

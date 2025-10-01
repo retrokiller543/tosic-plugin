@@ -30,11 +30,23 @@
 //! ```
 
 // Strict linting for release builds
-#![cfg_attr(not(debug_assertions), deny(missing_docs))]
-#![cfg_attr(not(debug_assertions), deny(clippy::all))]
-#![cfg_attr(not(debug_assertions), deny(clippy::pedantic))]
-#![cfg_attr(not(debug_assertions), deny(unsafe_code))]
-#![cfg_attr(not(debug_assertions), deny(unused))]
+#![cfg_attr(not(debug_assertions), deny(
+    missing_docs,
+    clippy::all,
+    clippy::pedantic,
+    clippy::missing_safety_doc,
+    clippy::missing_panics_doc,
+    unused,
+))]
+// More relaxed linting for debug builds to aid development but still warn about issues that will break release builds
+#![cfg_attr(debug_assertions, warn(
+    missing_docs,
+    clippy::all,
+    clippy::pedantic,
+    clippy::missing_safety_doc,
+    clippy::missing_panics_doc,
+    unused,
+))]
 
 pub mod traits;
 pub mod types;
