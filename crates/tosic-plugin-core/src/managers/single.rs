@@ -110,16 +110,16 @@ impl<R: Runtime> PluginManager for SingleRuntimeManager<R> {
     }
 
     #[cfg(not(feature = "async"))]
-    fn call_plugin(&self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
-        match self.plugins.get(&id) {
+    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+        match self.plugins.get_mut(&id) {
             Some(plugin) => self.runtime.call(plugin, function_name, args),
             None => Err(crate::PluginError::InvalidPluginState),
         }
     }
 
     #[cfg(feature = "async")]
-    async fn call_plugin(&self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
-        match self.plugins.get(&id) {
+    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+        match self.plugins.get_mut(&id) {
             Some(plugin) => self.runtime.call(plugin, function_name, args).await,
             None => Err(crate::PluginError::InvalidPluginState),
         }

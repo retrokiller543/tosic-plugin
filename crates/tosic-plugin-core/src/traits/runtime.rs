@@ -69,7 +69,7 @@ pub trait Runtime {
     /// Returns the result value from the plugin function.
     fn call(
         &self,
-        plugin: &dyn Plugin,
+        plugin: &mut dyn Plugin,
         function_name: &str,
         args: &[Value],
     ) -> PluginResult<Value>;
@@ -95,7 +95,7 @@ pub trait Runtime: Send + Sync {
     /// Returns the result value from the plugin function.
     async fn call(
         &self,
-        plugin: &dyn Plugin,
+        plugin: &mut dyn Plugin,
         function_name: &str,
         args: &[Value],
     ) -> PluginResult<Value>;

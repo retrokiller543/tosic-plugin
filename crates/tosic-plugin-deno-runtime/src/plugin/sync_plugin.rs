@@ -3,14 +3,12 @@ use rustyscript::Runtime;
 use tosic_plugin_core::traits::Plugin;
 
 pub struct DenoPlugin {
-    runtime: Runtime
+    runtime: Runtime,
 }
 
 impl DenoPlugin {
     pub fn new(runtime: Runtime) -> Self {
-        Self {
-            runtime,
-        }
+        Self { runtime }
     }
     
     pub fn runtime(&self) -> &Runtime {

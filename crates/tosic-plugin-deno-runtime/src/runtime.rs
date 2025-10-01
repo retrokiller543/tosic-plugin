@@ -1,10 +1,10 @@
-use std::path::PathBuf;
+use crate::plugin::DenoPlugin;
 use glob::glob;
-use rustyscript::{Module, RuntimeBuilder};
+use rustyscript::Runtime as JsRuntime;
+use rustyscript::Module;
+use std::path::PathBuf;
 use tosic_plugin_core::managers::SingleRuntimeManager;
 use tosic_plugin_core::prelude::*;
-use rustyscript::Runtime as JsRuntime;
-use crate::plugin::DenoPlugin;
 
 pub type DenoPluginManager = SingleRuntimeManager<DenoRuntime>;
 
@@ -32,7 +32,47 @@ impl DenoRuntime {
     fn get_module(&self, source: &PluginSource) -> PluginResult<Module> {
         debug_assert!(self.supports_plugin(source), "Plugin source not supported by DenoRuntime");
 
-        Err(PluginError::RuntimeError("Deno plugin loading not implemented".into()))
+        match source {
+            PluginSource::Code(code) => Ok(Module::new("plugin.js", code)),
+            PluginSource::Bytes(bytes) => {
+                let code = String::from_utf8_lossy(bytes);
+                Ok(Module::new("plugin.js", &code))
+            }
+            PluginSource::FilePath(path) => {
+                let path = PathBuf::from(path);
+                
+                if path.is_file() {
+                    Module::load(&path)
+                        .map_err(|e| PluginError::LoadError(format!("Failed to load module from file: {}", e)))
+                } else if path.is_dir() {
+                    let pattern = Self::build_glob_pattern(&path);
+                    let entry_files: Vec<_> = glob(&pattern)
+                        .map_err(|e| PluginError::LoadError(format!("Failed to glob pattern: {}", e)))?
+                        .filter_map(Result::ok)
+                        .filter(|p| p.is_file())
+                        .collect();
+                    
+                    if entry_files.is_empty() {
+                        return Err(PluginError::LoadError("No supported files found in directory".into()));
+                    }
+                    
+                    // For directories, try to find index file or use the first file
+                    let entry_file = entry_files.iter()
+                        .find(|p| {
+                            p.file_stem()
+                                .and_then(|stem| stem.to_str())
+                                .map(|stem| stem == "index")
+                                .unwrap_or(false)
+                        })
+                        .unwrap_or(&entry_files[0]);
+                    
+                    Module::load(entry_file)
+                        .map_err(|e| PluginError::LoadError(format!("Failed to load module from directory: {}", e)))
+                } else {
+                    Err(PluginError::LoadError("Path is neither a file nor a directory".into()))
+                }
+            }
+        }
     }
 
     fn validate(code: &str) -> bool {
@@ -57,19 +97,38 @@ impl DenoRuntime {
         }
     }
 
-    fn register_host_capabilities(&self, runtime: &mut JsRuntime, context: &HostContext) -> PluginResult<()> {
+    pub(crate) fn register_host_capabilities(runtime: &mut JsRuntime, context: &HostContext) -> PluginResult<()> {
         for (name, func) in context.functions() {
-            let func = func.clone();
-
-            runtime.register_function(name, move |args| {
-                let tosic_args: Vec<Value> = args.iter()
-                    .map(|v| Value::from(v.clone()))
-                    .collect();
-
-                let res = (func)(&tosic_args).unwrap();
-
-                Ok(res.into())
-            }).map_err(|error| PluginError::LoadError(format!("Failed to register host function '{}': {}", name, error)))?;
+            match func {
+                HostFunctionType::Sync(func) => {
+                    let func = func.clone();
+                    
+                    let js_func = move |args: &[serde_json::Value]| {
+                        let result = func(args);
+                        
+                        result
+                            .map_err(|error| rustyscript::Error::Runtime(error.to_string()))
+                    };
+                    
+                    runtime.register_function(name, js_func)
+                        .map_err(|e| PluginError::RuntimeError(format!("Failed to register function '{}': {}", name, e)))?;
+                }
+                #[cfg(feature = "async")]
+                HostFunctionType::Async(func) => {
+                    let func = func.clone();
+                    
+                    let js_func = move |args: Vec<serde_json::Value>| -> std::pin::Pin<Box<dyn Future<Output = Result<serde_json::Value, rustyscript::Error>> + 'static>> {
+                        let func = func.clone();
+                        Box::pin(async move {
+                            let res = func(&args).await;
+                            res.map_err(|error| rustyscript::Error::Runtime(error.to_string()))
+                        })
+                    };
+                    
+                    runtime.register_async_function(name, js_func)
+                        .map_err(|e| PluginError::RuntimeError(format!("Failed to register async function '{}': {}", name, e)))?;
+                }
+            }
         }
 
         Ok(())
@@ -108,7 +167,7 @@ impl Runtime for DenoRuntime {
             .build()
             .map_err(|error| PluginError::LoadError(format!("Failed to build runtime: {}", error)))?;
 
-        self.register_host_capabilities(&mut runtime, context)?;
+        Self::register_host_capabilities(&mut runtime, context)?;
 
         if let PluginSource::FilePath(path) = source {
             runtime.set_current_dir(path)
@@ -123,11 +182,19 @@ impl Runtime for DenoRuntime {
 
     #[cfg(feature = "async")]
     async fn load(&mut self, source: &PluginSource, context: &HostContext) -> PluginResult<Box<dyn Plugin>> {
-        todo!()
+        let module = self.get_module(source)?;
+        
+        let path = if let PluginSource::FilePath(path) = source {
+            Some(path.to_string())
+        } else {
+            None
+        };
+
+        Ok(Box::new(DenoPlugin::new(module, context.clone(), path)))
     }
 
     #[cfg(not(feature = "async"))]
-    fn call(&self, plugin: &dyn Plugin, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+    fn call(&self, plugin: &mut dyn Plugin, function_name: &str, args: &[Value]) -> PluginResult<Value> {
         let plugin = plugin
             .as_any_mut()
             .downcast_mut::<DenoPlugin>()
@@ -135,13 +202,17 @@ impl Runtime for DenoRuntime {
 
         let runtime = plugin.runtime_mut();
 
-        runtime.call_function::<serde_json::Value>(None, function_name, &args)
-            .map(Into::into)
+        runtime.call_function::<Value>(None, function_name, &args)
             .map_err(|error| PluginError::RuntimeError(format!("Failed to call function '{}': {}", function_name, error)))
     }
 
     #[cfg(feature = "async")]
-    async fn call(&self, plugin: &dyn Plugin, function_name: &str, args: &[Value]) -> PluginResult<Value> {
-        todo!()
+    async fn call(&self, plugin: &mut dyn Plugin, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+        let plugin = plugin
+            .as_any_mut()
+            .downcast_mut::<DenoPlugin>()
+            .ok_or_else(|| PluginError::RuntimeError("Invalid plugin type for DenoRuntime".into()))?;
+
+        plugin.call_function(function_name, args).await
     }
 }

@@ -140,21 +140,21 @@ impl PluginManager for MultiRuntimeManager {
     }
 
     #[cfg(not(feature = "async"))]
-    fn call_plugin(&self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
-        let entry = self.plugins.get(&id)
+    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+        let entry = self.plugins.get_mut(&id)
             .ok_or(crate::PluginError::InvalidPluginState)?;
 
         let runtime = &self.runtimes[entry.runtime_index];
-        runtime.call(&*entry.plugin, function_name, args)
+        runtime.call(&mut *entry.plugin, function_name, args)
     }
 
     #[cfg(feature = "async")]
-    async fn call_plugin(&self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
-        let entry = self.plugins.get(&id)
+    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+        let entry = self.plugins.get_mut(&id)
             .ok_or(crate::PluginError::InvalidPluginState)?;
         
         let runtime = &self.runtimes[entry.runtime_index];
-        runtime.call(&*entry.plugin, function_name, args).await
+        runtime.call(&mut *entry.plugin, function_name, args).await
     }
 
     #[cfg(not(feature = "async"))]

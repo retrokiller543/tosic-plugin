@@ -1,1 +1,1 @@
-pub use crate::{DenoRuntime, JsPlugin};
+pub use crate::{DenoRuntime, DenoPlugin};
