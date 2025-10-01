@@ -35,27 +35,8 @@ pub trait IntoValue {
 /// This trait is implemented for functions with different arities.
 #[diagnostic::on_unimplemented(
     message = "the function `{Self}` cannot be used as a host function",
-    note = "ensure your function arguments implement `FromValue` and return type implements `IntoValue`. Functions must be `Fn(...) -> R`. Maximum 16 arguments supported."
-)]
-#[cfg(not(feature = "async"))]
-pub trait HostFunction<Args> {
-    /// The return type of the host function.
-    type Output: IntoValue;
-    
-    /// Calls the host function with the provided arguments.
-    /// 
-    /// # Errors
-    /// Returns an error if the function call fails or if argument types are invalid.
-    fn call(&self, args: Args) -> PluginResult<Value>;
-}
-
-/// Trait for functions that can be used as host functions.
-/// This trait is implemented for functions with different arities.
-#[diagnostic::on_unimplemented(
-    message = "the function `{Self}` cannot be used as a host function",
     note = "ensure your function arguments implement `FromValue` and return type implements `IntoValue`. Functions must be `Fn(...) -> R + Send + Sync`. Maximum 16 arguments supported."
 )]
-#[cfg(feature = "async")]
 pub trait HostFunction<Args>: Send + Sync {
     /// The return type of the host function.
     type Output: IntoValue;
@@ -71,21 +52,6 @@ pub trait HostFunction<Args>: Send + Sync {
 macro_rules! impl_host_function {
     // Base case: no arguments
     () => {
-        #[cfg(not(feature = "async"))]
-        impl<F, R> HostFunction<()> for F
-        where
-            F: Fn() -> R,
-            R: IntoValue,
-        {
-            type Output = R;
-            
-            #[inline(always)]
-            fn call(&self, _args: ()) -> PluginResult<Value> {
-                Ok(self().into_value())
-            }
-        }
-        
-        #[cfg(feature = "async")]
         impl<F, R> HostFunction<()> for F
         where
             F: Fn() -> R + Send + Sync,
@@ -102,23 +68,6 @@ macro_rules! impl_host_function {
     
     // Recursive case: generate implementation for N arguments
     ($($arg:ident),+) => {
-        #[cfg(not(feature = "async"))]
-        impl<F, $($arg,)+ R> HostFunction<($($arg,)+)> for F
-        where
-            F: Fn($($arg,)+) -> R,
-            $($arg: FromValue,)+
-            R: IntoValue,
-        {
-            type Output = R;
-            
-            #[allow(non_snake_case)]
-            #[inline(always)]
-            fn call(&self, ($($arg,)+): ($($arg,)+)) -> PluginResult<Value> {
-                Ok(self($($arg,)+).into_value())
-            }
-        }
-        
-        #[cfg(feature = "async")]
         impl<F, $($arg,)+ R> HostFunction<($($arg,)+)> for F
         where
             F: Fn($($arg,)+) -> R + Send + Sync,

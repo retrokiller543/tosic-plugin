@@ -48,6 +48,10 @@
     unused,
 ))]
 
+#[cfg(feature = "inventory")]
+#[macro_use]
+pub extern crate inventory;
+
 pub mod traits;
 pub mod types;
 pub mod error;

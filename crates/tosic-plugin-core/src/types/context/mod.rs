@@ -1,11 +1,16 @@
 //! Host context for plugin function registration.
 
+mod registry;
+
 use std::collections::HashMap;
 use std::sync::Arc;
 use cfg_if::cfg_if;
 use crate::PluginResult;
 use crate::types::Value;
 use crate::traits::host_function::HostFunction;
+
+#[cfg(feature = "global-registry")]
+pub use registry::*;
 
 cfg_if! {
     if #[cfg(feature = "async")] {
@@ -14,33 +19,75 @@ cfg_if! {
         
         use crate::traits::host_function::AsyncHostFunction;
         
-        /// Type-erased host function that can be stored in the context.
-        type BoxedHostFunction = Arc<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>;
         /// Type-erased asynchronous host function that can be stored in the context.
-        type BoxedAsyncHostFunction = Arc<dyn Fn(&[Value]) -> std::pin::Pin<Box<dyn Future<Output = PluginResult<Value>> + Send>> + Send + Sync>;
-
-    } else {
-        /// Type-erased host function that can be stored in the context.
-        type BoxedHostFunction = Arc<dyn Fn(&[Value]) -> PluginResult<Value>>;
+        pub(crate) type BoxedAsyncHostFunction = Arc<dyn Fn(&[Value]) -> Pin<Box<dyn Future<Output = PluginResult<Value>> + Send>> + Send + Sync>;
     }
+}
+
+/// Type-erased host function that can be stored in the context.
+pub(crate) type BoxedHostFunction = Arc<dyn Fn(&[Value]) -> PluginResult<Value> + Send + Sync>;
+
+/// Boxes a synchronous host function into a type-erased BoxedHostFunction.
+#[inline(always)]
+pub fn box_fn<F, Args>(func: F) -> BoxedHostFunction
+where
+    F: HostFunction<Args> + 'static,
+    Args: ExtractArgs,
+{
+    let func = Arc::new(func);
+    Arc::new(move |args: &[Value]| -> PluginResult<Value> {
+        let extracted_args = Args::extract_args(args)?;
+        func.call(extracted_args)
+    })
+}
+
+/// Boxes a synchronous host function into a type-erased BoxedHostFunction.
+#[cfg(feature = "async")]
+#[inline(always)]
+pub fn box_async_fn<F, Args>(func: F) -> BoxedAsyncHostFunction
+where
+    F: AsyncHostFunction<Args> + Send + Sync + 'static,
+    Args: ExtractArgs + Send,
+{
+    let func = Arc::new(func);
+    Arc::new(move |args: &[Value]| -> Pin<Box<dyn Future<Output=PluginResult<Value>> + Send + 'static>> {
+        let func = Arc::clone(&func);
+        let args = args.to_vec();
+        Box::pin(async move {
+            let extracted_args = match Args::extract_args(&args) {
+                Ok(a) => a,
+                Err(e) => return Err(e),
+            };
+            
+            func.call(extracted_args).await
+        })
+    })
+}
+
+/// Unified enum for both sync and async host functions
+#[derive(Clone)]
+pub enum HostFunctionType {
+    /// Synchronous host function
+    Sync(BoxedHostFunction),
+    /// Asynchronous host function
+    #[cfg(feature = "async")]
+    Async(BoxedAsyncHostFunction),
 }
 
 /// Iterator that takes ownership of HostContext and yields its functions.
 pub struct HostContextIntoIter {
-    inner: std::collections::hash_map::IntoIter<String, BoxedHostFunction>,
+    inner: std::collections::hash_map::IntoIter<String, HostFunctionType>,
 }
 
 /// Context containing host functions that can be injected into plugin runtimes.
 /// Functions are identified by their string names and can be called from plugins.
 #[derive(Default, Clone)]
 pub struct HostContext {
-    functions: HashMap<String, BoxedHostFunction>,
-    #[cfg(feature = "async")]
-    async_functions: HashMap<String, BoxedAsyncHostFunction>,
+    functions: HashMap<String, HostFunctionType>,
 }
 
 impl IntoIterator for HostContext {
-    type Item = (String, BoxedHostFunction);
+    type Item = (String, HostFunctionType);
     type IntoIter = HostContextIntoIter;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -51,7 +98,7 @@ impl IntoIterator for HostContext {
 }
 
 impl Iterator for HostContextIntoIter {
-    type Item = (String, BoxedHostFunction);
+    type Item = (String, HostFunctionType);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next()
@@ -61,10 +108,19 @@ impl Iterator for HostContextIntoIter {
 impl HostContext {
     /// Creates a new empty host context.
     pub fn new() -> Self {
-        Self {
-            functions: HashMap::new(),
-            #[cfg(feature = "async")]
-            async_functions: HashMap::new(),
+        #[cfg(feature = "global-registry")]
+        {
+            let mut context = Self {
+                functions: HashMap::new(),
+            };
+            registry::HostCapabilityRegistry::load_into_context(&mut context);
+            context
+        }
+        #[cfg(not(feature = "global-registry"))]
+        {
+            Self {
+                functions: HashMap::new(),
+            }
         }
     }
 
@@ -75,12 +131,7 @@ impl HostContext {
         F: HostFunction<Args> + 'static,
         Args: ExtractArgs,
     {
-        let boxed_func = Arc::new(move |args: &[Value]| -> PluginResult<Value> {
-            let extracted_args = Args::extract_args(args)?;
-            func.call(extracted_args)
-        });
-        
-        self.functions.insert(name.into(), boxed_func);
+        self.functions.insert(name.into(), HostFunctionType::Sync(box_fn(func)));
     }
     
     /// Registers an asynchronous host function with the given name.
@@ -89,89 +140,83 @@ impl HostContext {
     pub fn register_async<Args, F>(&mut self, name: impl Into<String>, func: F)
     where
         F: AsyncHostFunction<Args> + Send + Sync + 'static,
-        Args: ExtractArgs + Send + 'static,
+        Args: ExtractArgs + Send,
     {
-        let func = Arc::new(func);
-        let boxed_func = Arc::new(move |args: &[Value]| -> Pin<Box<dyn Future<Output=PluginResult<Value>> + Send + 'static>> {
-            let func = Arc::clone(&func);
-            let args = args.to_vec();
-            Box::pin(async move {
-                let extracted_args = match Args::extract_args(&args) {
-                    Ok(a) => a,
-                    Err(e) => return Err(e),
-                };
-                
-                func.call(extracted_args).await
-            })
-        });
-        
-        self.async_functions.insert(name.into(), boxed_func);
+        self.functions.insert(name.into(), HostFunctionType::Async(box_async_fn(func)));
     }
 
     /// Gets a host function by name and calls it with the provided arguments.
+    #[cfg(not(feature = "async"))]
     pub fn call_function(&self, name: &str, args: &[Value]) -> PluginResult<Value> {
         match self.functions.get(name) {
-            Some(func) => func(args),
+            Some(HostFunctionType::Sync(func)) => func(args),
             None => Err(crate::PluginError::HostFunctionNotFound(name.to_string())),
         }
     }
 
-    /// Gets an async host function by name and calls it with the provided arguments.
+    /// Gets a host function by name and calls it with the provided arguments.
     #[cfg(feature = "async")]
-    pub fn call_async_function(&self, name: &str, args: &[Value]) -> Pin<Box<dyn Future<Output = PluginResult<Value>> + Send + 'static>> {
-        match self.async_functions.get(name) {
-            Some(func) => func(args),
-            None => {
-                let name = name.to_string();
-                Box::pin(async move { Err(crate::PluginError::HostFunctionNotFound(name)) })
-            }
+    pub async fn call_function(&self, name: &str, args: &[Value]) -> PluginResult<Value> {
+        match self.functions.get(name) {
+            Some(HostFunctionType::Sync(func)) => func(args),
+            Some(HostFunctionType::Async(func)) => func(args).await,
+            None => Err(crate::PluginError::HostFunctionNotFound(name.to_string())),
         }
     }
 
-    /// Returns all registered synchronous function names.
+    /// Returns all registered function names.
     pub fn function_names(&self) -> impl Iterator<Item = &String> {
         self.functions.keys()
+    }
+
+    /// Returns all registered synchronous function names.
+    pub fn sync_function_names(&self) -> impl Iterator<Item = &String> {
+        self.functions.iter().filter_map(|(name, func_type)| {
+            if matches!(func_type, HostFunctionType::Sync(_)) {
+                Some(name)
+            } else {
+                None
+            }
+        })
     }
 
     /// Returns all registered asynchronous function names.
     #[cfg(feature = "async")]
     pub fn async_function_names(&self) -> impl Iterator<Item = &String> {
-        self.async_functions.keys()
+        self.functions.iter().filter_map(|(name, func_type)| {
+            if matches!(func_type, HostFunctionType::Async(_)) {
+                Some(name)
+            } else {
+                None
+            }
+        })
     }
 
-    /// Returns an iterator over all registered functions as (name, function) pairs.
+    /// Returns an iterator over all registered functions as (name, function_type) pairs.
     /// This is more efficient than iterating over names when you need both.
-    pub fn functions(&self) -> impl Iterator<Item = (&String, &BoxedHostFunction)> {
+    pub fn functions(&self) -> impl Iterator<Item = (&String, &HostFunctionType)> {
         self.functions.iter()
     }
 
-    /// Returns true if a synchronous function with the given name is registered.
+    /// Returns true if any function with the given name is registered.
     pub fn has_function(&self, name: &str) -> bool {
         self.functions.contains_key(name)
+    }
+
+    /// Returns true if a synchronous function with the given name is registered.
+    pub fn has_sync_function(&self, name: &str) -> bool {
+        matches!(self.functions.get(name), Some(HostFunctionType::Sync(_)))
     }
 
     /// Returns true if an asynchronous function with the given name is registered.
     #[cfg(feature = "async")]
     pub fn has_async_function(&self, name: &str) -> bool {
-        self.async_functions.contains_key(name)
+        matches!(self.functions.get(name), Some(HostFunctionType::Async(_)))
     }
 
-    /// Returns true if any function (sync or async) with the given name is registered.
-    pub fn has_any_function(&self, name: &str) -> bool {
-        #[cfg(feature = "async")]
-        {
-            self.functions.contains_key(name) || self.async_functions.contains_key(name)
-        }
-        #[cfg(not(feature = "async"))]
-        {
-            self.functions.contains_key(name)
-        }
-    }
-
-    /// Returns an iterator over all registered async functions as (name, function) pairs.
-    #[cfg(feature = "async")]
-    pub fn async_functions(&self) -> impl Iterator<Item = (&String, &BoxedAsyncHostFunction)> {
-        self.async_functions.iter()
+    /// Returns the type of function registered with the given name.
+    pub fn function_type(&self, name: &str) -> Option<&HostFunctionType> {
+        self.functions.get(name)
     }
 }
 
