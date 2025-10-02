@@ -92,6 +92,3 @@ globalThis.load = function() {
     console.log("Plugin loaded successfully!");
     return "loaded";
 };
-
-// Initialize the plugin
-console.log("JavaScript plugin initialized with functions: greet, greetPerson, add, processData, analyzeObject, sumArray, callHost, load");

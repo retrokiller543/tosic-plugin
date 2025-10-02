@@ -2,6 +2,7 @@
 
 use crate::types::{HostContext, Value};
 use crate::prelude::{PluginResult, PluginSource};
+use crate::traits::host_function::IntoArgs;
 
 /// Unique identifier for a loaded plugin instance.
 /// This allows managers to track and reference plugins after loading.
@@ -27,7 +28,7 @@ pub trait PluginManager {
     /// 
     /// # Errors
     /// Returns an error if the plugin ID is invalid, function doesn't exist, or the call fails.
-    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value>;
+    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs) -> PluginResult<Value>;
 
     /// Unloads the specified plugin and frees its resources.
     /// After this call, the plugin ID becomes invalid.
@@ -62,7 +63,7 @@ pub trait PluginManager: Send + Sync {
     /// 
     /// # Errors
     /// Returns an error if the plugin ID is invalid, function doesn't exist, or the call fails.
-    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value>;
+    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs + Send + Sync) -> PluginResult<Value>;
 
     /// Unloads the specified plugin and frees its resources.
     /// After this call, the plugin ID becomes invalid.

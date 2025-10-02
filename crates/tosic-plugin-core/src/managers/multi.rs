@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::traits::{PluginManager, PluginId, Runtime, Plugin};
+use crate::traits::{PluginManager, PluginId, Runtime, Plugin, IntoArgs};
 use crate::types::{HostContext, Value};
 use crate::prelude::{PluginResult, PluginSource};
 
@@ -140,21 +140,21 @@ impl PluginManager for MultiRuntimeManager {
     }
 
     #[cfg(not(feature = "async"))]
-    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs) -> PluginResult<Value> {
         let entry = self.plugins.get_mut(&id)
             .ok_or(crate::PluginError::InvalidPluginState)?;
 
         let runtime = &self.runtimes[entry.runtime_index];
-        runtime.call(&mut *entry.plugin, function_name, args)
+        runtime.call(&mut *entry.plugin, function_name, &args.into_args())
     }
 
     #[cfg(feature = "async")]
-    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs + Send + Sync) -> PluginResult<Value> {
         let entry = self.plugins.get_mut(&id)
             .ok_or(crate::PluginError::InvalidPluginState)?;
         
         let runtime = &self.runtimes[entry.runtime_index];
-        runtime.call(&mut *entry.plugin, function_name, args).await
+        runtime.call(&mut *entry.plugin, function_name, &args.into_args()).await
     }
 
     #[cfg(not(feature = "async"))]

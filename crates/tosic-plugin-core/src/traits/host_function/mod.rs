@@ -31,6 +31,18 @@ pub trait IntoValue {
     fn into_value(self) -> Value;
 }
 
+/// Trait for types that can be converted into plugin function arguments.
+/// This trait enables ergonomic function calls by accepting various argument formats:
+/// tuples, slices, vectors, and arrays.
+#[diagnostic::on_unimplemented(
+    message = "the type `{Self}` cannot be used as plugin function arguments",
+    note = "ensure your type implements `IntoArgs`. Supported types: (), tuples up to 16 elements (where each element implements `IntoValue`), &[Value], Vec<Value>, [Value; N]"
+)]
+pub trait IntoArgs {
+    /// Converts the arguments into a Vec<Value> for plugin function calls.
+    fn into_args(self) -> Vec<Value>;
+}
+
 /// Trait for functions that can be used as host functions.
 /// This trait is implemented for functions with different arities.
 #[diagnostic::on_unimplemented(
@@ -103,3 +115,87 @@ impl_host_function!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13);
 impl_host_function!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14);
 impl_host_function!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15);
 impl_host_function!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16);
+
+// ================================================================================================
+// IntoArgs Implementations
+// ================================================================================================
+
+// Implementation for slice references (backward compatibility)
+impl IntoArgs for &[Value] {
+    #[inline(always)]
+    fn into_args(self) -> Vec<Value> {
+        self.to_vec()
+    }
+}
+
+// Implementation for owned vectors
+impl IntoArgs for Vec<Value> {
+    #[inline(always)]
+    fn into_args(self) -> Vec<Value> {
+        self
+    }
+}
+
+// Implementation for fixed-size arrays using const generics
+impl<const N: usize> IntoArgs for [Value; N] {
+    #[inline(always)]
+    fn into_args(self) -> Vec<Value> {
+        self.into_iter().collect()
+    }
+}
+
+// Implementation for references to fixed-size arrays
+impl<const N: usize> IntoArgs for &[Value; N] {
+    #[inline(always)]
+    fn into_args(self) -> Vec<Value> {
+        self.iter().cloned().collect()
+    }
+}
+
+// Macro to generate IntoArgs implementations for tuples
+#[allow(missing_docs)]
+macro_rules! impl_into_args_tuple {
+    // Base case: empty tuple
+    () => {
+        impl IntoArgs for () {
+            #[inline(always)]
+            fn into_args(self) -> Vec<Value> {
+                Vec::new()
+            }
+        }
+    };
+    
+    // Recursive case: generate implementation for N-element tuples
+    ($($arg:ident),+) => {
+        impl<$($arg,)+> IntoArgs for ($($arg,)+)
+        where
+            $($arg: IntoValue,)+
+        {
+            #[allow(non_snake_case)]
+            #[inline(always)]
+            fn into_args(self) -> Vec<Value> {
+                let ($($arg,)+) = self;
+                vec![$($arg.into_value(),)+]
+            }
+        }
+    };
+}
+
+// Generate IntoArgs implementations for tuples from 0 to 16 elements
+impl_into_args_tuple!();
+impl_into_args_tuple!(A1);
+impl_into_args_tuple!(A1, A2);
+impl_into_args_tuple!(A1, A2, A3);
+impl_into_args_tuple!(A1, A2, A3, A4);
+impl_into_args_tuple!(A1, A2, A3, A4, A5);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15);
+impl_into_args_tuple!(A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13, A14, A15, A16);

@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::traits::{PluginManager, PluginId, Runtime, Plugin};
+use crate::traits::{PluginManager, PluginId, Runtime, Plugin, IntoArgs};
 use crate::types::{HostContext, Value};
 use crate::prelude::{PluginResult, PluginSource};
 
@@ -73,17 +73,14 @@ impl<R: Runtime> SingleRuntimeManager<R> {
 impl<R: Runtime> PluginManager for SingleRuntimeManager<R> {
     #[cfg(not(feature = "async"))]
     fn load_plugin(&mut self, source: PluginSource, context: &HostContext) -> PluginResult<PluginId> {
-        // Check if runtime supports this plugin type
         if !self.runtime.supports_plugin(&source) {
             return Err(crate::PluginError::LoadError(
                 format!("Runtime '{}' does not support this plugin source", self.runtime.runtime_name())
             ));
         }
-
-        // Load the plugin using the runtime
+        
         let plugin = self.runtime.load(&source, context)?;
-
-        // Generate ID and store the plugin
+        
         let id = self.next_plugin_id();
         self.plugins.insert(id, plugin);
 
@@ -92,17 +89,14 @@ impl<R: Runtime> PluginManager for SingleRuntimeManager<R> {
     
     #[cfg(feature = "async")]
     async fn load_plugin(&mut self, source: PluginSource, context: &HostContext) -> PluginResult<PluginId> {
-        // Check if runtime supports this plugin type
         if !self.runtime.supports_plugin(&source) {
             return Err(crate::PluginError::LoadError(
                 format!("Runtime '{}' does not support this plugin source", self.runtime.runtime_name())
             ));
         }
-
-        // Load the plugin using the runtime
+        
         let plugin = self.runtime.load(&source, context).await?;
         
-        // Generate ID and store the plugin
         let id = self.next_plugin_id();
         self.plugins.insert(id, plugin);
         
@@ -110,17 +104,17 @@ impl<R: Runtime> PluginManager for SingleRuntimeManager<R> {
     }
 
     #[cfg(not(feature = "async"))]
-    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+    fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs) -> PluginResult<Value> {
         match self.plugins.get_mut(&id) {
-            Some(plugin) => self.runtime.call(plugin, function_name, args),
+            Some(plugin) => self.runtime.call(plugin, function_name, &args.into_args()),
             None => Err(crate::PluginError::InvalidPluginState),
         }
     }
 
     #[cfg(feature = "async")]
-    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: &[Value]) -> PluginResult<Value> {
+    async fn call_plugin(&mut self, id: PluginId, function_name: &str, args: impl IntoArgs + Send + Sync) -> PluginResult<Value> {
         match self.plugins.get_mut(&id) {
-            Some(plugin) => self.runtime.call(plugin, function_name, args).await,
+            Some(plugin) => self.runtime.call(plugin, function_name, &args.into_args()).await,
             None => Err(crate::PluginError::InvalidPluginState),
         }
     }

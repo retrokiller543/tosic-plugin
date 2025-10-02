@@ -3,6 +3,7 @@
 use std::any::Any;
 use crate::types::{HostContext, Value};
 use crate::prelude::{PluginResult, PluginSource};
+use crate::traits::host_function::IntoArgs;
 
 /// Opaque handle to a loaded plugin instance.
 /// This trait represents a loaded piece of plugin code that can be executed.
@@ -100,3 +101,58 @@ pub trait Runtime: Send + Sync {
         args: &[Value],
     ) -> PluginResult<Value>;
 }
+
+// ================================================================================================
+// Extension traits for ergonomic argument passing
+// ================================================================================================
+
+/// Extension trait that adds ergonomic argument methods to the sync Runtime trait.
+/// This provides the same functionality but with generic argument support.
+#[cfg(not(feature = "async"))]
+pub trait RuntimeExt: Runtime {
+    /// Calls a function in the loaded plugin with ergonomic argument support.
+    /// 
+    /// Accepts various argument formats:
+    /// - Tuples: `(arg1, arg2, ...)` where each arg implements `IntoValue`
+    /// - Slices: `&[Value]` (backward compatibility)
+    /// - Vectors: `Vec<Value>`
+    /// - Arrays: `[Value; N]`
+    fn call_with<A: IntoArgs>(
+        &self,
+        plugin: &mut dyn Plugin,
+        function_name: &str,
+        args: A,
+    ) -> PluginResult<Value> {
+        let args_vec = args.into_args();
+        self.call(plugin, function_name, &args_vec)
+    }
+}
+
+/// Extension trait that adds ergonomic argument methods to the async Runtime trait.
+/// This provides the same functionality but with generic argument support.
+#[cfg(feature = "async")]
+pub trait RuntimeExt: Runtime {
+    /// Calls a function in the loaded plugin with ergonomic argument support.
+    /// 
+    /// Accepts various argument formats:
+    /// - Tuples: `(arg1, arg2, ...)` where each arg implements `IntoValue`
+    /// - Slices: `&[Value]` (backward compatibility)
+    /// - Vectors: `Vec<Value>`
+    /// - Arrays: `[Value; N]`
+    async fn call_with<A: IntoArgs>(
+        &self,
+        plugin: &mut dyn Plugin,
+        function_name: &str,
+        args: A,
+    ) -> PluginResult<Value> {
+        let args_vec = args.into_args();
+        self.call(plugin, function_name, &args_vec).await
+    }
+}
+
+// Blanket implementation for all Runtime types
+#[cfg(not(feature = "async"))]
+impl<T: Runtime> RuntimeExt for T {}
+
+#[cfg(feature = "async")]
+impl<T: Runtime> RuntimeExt for T {}
