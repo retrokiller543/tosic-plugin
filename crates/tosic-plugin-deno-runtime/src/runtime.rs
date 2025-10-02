@@ -1,6 +1,6 @@
 use crate::plugin::DenoPlugin;
 use glob::glob;
-use rustyscript::Runtime as JsRuntime;
+use rustyscript::{Runtime as JsRuntime, RuntimeBuilder};
 use rustyscript::Module;
 use std::path::PathBuf;
 use tosic_plugin_core::managers::SingleRuntimeManager;
@@ -10,20 +10,9 @@ pub type DenoPluginManager = SingleRuntimeManager<DenoRuntime>;
 
 pub struct DenoRuntime;
 
-macro_rules! extensions {
-    ($first:literal) => {
-        const SUPPORTED_EXTENSIONS: &[&str] = &[$first];
-        const SUPPORTED_PATTERN: &str = concat!("*.", $first);
-    };
-
-    ($first:literal $(, $rest:literal)* $(,)?) => {
-        const SUPPORTED_EXTENSIONS: &[&str] = &[$first, $($rest),*];
-        const SUPPORTED_PATTERN: &str = concat!("*.{", $first $(, ",", $rest)*, "}");
-    };
-}
-
 impl DenoRuntime {
-    extensions!("ts", "js");
+    const SUPPORTED_EXTENSIONS: &'static [&'static str] = &["js", "ts"];
+    const SUPPORTED_PATTERN: &'static str = "*.[jt]s";
 
     pub fn new() -> Self {
         Self
@@ -56,7 +45,6 @@ impl DenoRuntime {
                         return Err(PluginError::LoadError("No supported files found in directory".into()));
                     }
                     
-                    // For directories, try to find index file or use the first file
                     let entry_file = entry_files.iter()
                         .find(|p| {
                             p.file_stem()

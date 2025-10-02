@@ -100,9 +100,9 @@ impl HostCapabilityRegistry {
 macro_rules! register_sync_fn {
     ($name:literal, $func:ident) => {
         $crate::inventory::submit! {
-            $crate::types::context::registry::HostCapability::new_sync(
+            $crate::prelude::HostCapability::new_sync(
                 $name,
-                || $crate::types::context::box_fn($func)
+                || $crate::prelude::box_fn($func)
             )
         }
     };
@@ -124,9 +124,9 @@ macro_rules! register_sync_fn {
 macro_rules! register_async_fn {
     ($name:literal, $func:ident) => {
         $crate::inventory::submit! {
-            $crate::types::context::registry::HostCapability::new_async(
+            $crate::prelude::HostCapability::new_async(
                 $name,
-                || $crate::types::context::box_async_fn($func)
+                || $crate::prelude::box_async_fn($func)
             )
         }
     };

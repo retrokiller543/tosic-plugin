@@ -19,5 +19,6 @@ tokio = { version = "1.0", features = ["full"], optional = true }
 glob = "0.3.3"
 
 [features]
-default = []
+default = ["global-registry"]
 async = ["tosic-plugin-core/async", "tokio"]
+global-registry = ["tosic-plugin-core/global-registry"]

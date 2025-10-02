@@ -7,6 +7,7 @@
 use tosic_plugin_core::prelude::*;
 use tosic_plugin_core::managers::MultiRuntimeManager;
 use tosic_plugin_deno_runtime::DenoRuntime;
+use serde_json::json;
 
 #[cfg(not(feature = "async"))]
 fn main() -> PluginResult<()> {
@@ -32,10 +33,8 @@ fn run_sync_example() -> PluginResult<()> {
     println!("Registered runtimes: {:?}", manager.runtime_names());
     println!("Runtime count: {}\n", manager.runtime_count());
     
-    // Create a host context
-    let mut context = HostContext::new();
-    context.register("hostAdd", |a: i64, b: i64| a + b);
-    context.register("hostGreet", |name: String| format!("Hello from multi-runtime, {}!", name));
+    // Create a host context (automatically includes global registry functions)
+    let context = HostContext::new();
     
     // Load a JavaScript plugin - the manager will automatically select Deno runtime
     let js_source = PluginSource::FilePath("js-example".to_string());
@@ -51,7 +50,7 @@ fn run_sync_example() -> PluginResult<()> {
     let result = manager.call_plugin(js_plugin_id, "greet", &[])?;
     println!("JS greet() result: {:?}", result);
     
-    let result = manager.call_plugin(js_plugin_id, "add", &[Value::Int(10), Value::Int(20)])?;
+    let result = manager.call_plugin(js_plugin_id, "add", &[json!(10), json!(20)])?;
     println!("JS add(10, 20) result: {:?}\n", result);
     
     // Load an inline JavaScript plugin
@@ -78,7 +77,7 @@ fn run_sync_example() -> PluginResult<()> {
     
     // Test the inline plugin
     println!("=== Testing Inline JavaScript Plugin ===");
-    let result = manager.call_plugin(inline_plugin_id, "calculate", &[Value::Int(7), Value::Int(3)])?;
+    let result = manager.call_plugin(inline_plugin_id, "calculate", &[Value::Number(7.into()), Value::Number(3.into())])?;
     println!("calculate(7, 3) result: {:?}", result);
     
     let result = manager.call_plugin(inline_plugin_id, "getInfo", &[])?;
@@ -110,10 +109,8 @@ async fn run_async_example() -> PluginResult<()> {
     println!("Registered runtimes: {:?}", manager.runtime_names());
     println!("Runtime count: {}\n", manager.runtime_count());
     
-    // Create a host context
-    let mut context = HostContext::new();
-    context.register("hostAdd", |a: i64, b: i64| a + b);
-    context.register("hostGreet", |name: String| format!("Hello from multi-runtime, {}!", name));
+    // Create a host context (automatically includes global registry functions)
+    let context = HostContext::new();
     
     // Load a JavaScript plugin - the manager will automatically select Deno runtime
     let js_source = PluginSource::FilePath("js-example".to_string());
@@ -129,7 +126,7 @@ async fn run_async_example() -> PluginResult<()> {
     let result = manager.call_plugin(js_plugin_id, "greet", &[]).await?;
     println!("JS greet() result: {:?}", result);
     
-    let result = manager.call_plugin(js_plugin_id, "add", &[Value::Int(10), Value::Int(20)]).await?;
+    let result = manager.call_plugin(js_plugin_id, "add", &[Value::Number(10.into()), Value::Number(20.into())]).await?;
     println!("JS add(10, 20) result: {:?}\n", result);
     
     // Load an inline JavaScript plugin
@@ -156,7 +153,7 @@ async fn run_async_example() -> PluginResult<()> {
     
     // Test the inline plugin
     println!("=== Testing Inline JavaScript Plugin (Async) ===");
-    let result = manager.call_plugin(inline_plugin_id, "calculate", &[Value::Int(7), Value::Int(3)]).await?;
+    let result = manager.call_plugin(inline_plugin_id, "calculate", &[Value::Number(7.into()), Value::Number(3.into())]).await?;
     println!("calculate(7, 3) result: {:?}", result);
     
     let result = manager.call_plugin(inline_plugin_id, "getInfo", &[]).await?;
